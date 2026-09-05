@@ -1,0 +1,2 @@
+# quiz evaluvator
+AI Quiz Analyzer in Google Classroom is a Django-powered learning platform that converts uploaded class materials (PDFs and PowerPoints) into dynamic, AI-generated practice quizzes tailored to each student's real-time reading progress.  By tracking exact reading boundaries down to the page, paragraph, and line level, the app ensures students are tested strictly on what they have actually read, offering on-demand self-assessment through a simple [ QUICK QUIZ ] interface without penalizing unanswered content.

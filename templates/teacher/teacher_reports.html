@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz Reports | AI Quiz Analyzer{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <div class="mb-4">
+        <h3 class="fw-bold mb-1">Student Quiz Reports</h3>
+        <p class="text-muted mb-0">AI-generated Quick Quiz scores, reading coverage, and progress details.</p>
+    </div>
+
+    <div class="card card-custom border-0 p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3">Student</th>
+                        <th class="py-3">Document Title</th>
+                        <th class="py-3">Reading Boundary</th>
+                        <th class="py-3">Questions Attempted</th>
+                        <th class="py-3">Score</th>
+                        <th class="py-3">Percentage</th>
+                        <th class="pe-4 py-3 text-end">Completion Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in attempts %}
+                    <tr>
+                        <td class="ps-4 py-3 fw-bold text-dark">
+                            <i class="bi bi-person-fill text-primary me-1"></i> {{ attempt.student.username }}
+                        </td>
+                        <td class="fw-semibold text-secondary">{{ attempt.document.title }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                Page {{ attempt.confirmed_page }} (P:{{ attempt.confirmed_paragraph }}, L:{{ attempt.confirmed_line }})
+                            </span>
+                        </td>
+                        <td>{{ attempt.questions_attempted }} questions</td>
+                        <td class="fw-bold text-indigo" style="color: #4f46e5;">{{ attempt.score }}</td>
+                        <td>
+                            {% if attempt.percentage >= 75 %}
+                                <span class="badge bg-success">{{ attempt.percentage }}%</span>
+                            {% elif attempt.percentage >= 50 %}
+                                <span class="badge bg-warning text-dark">{{ attempt.percentage }}%</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ attempt.percentage }}%</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-end text-muted small">{{ attempt.completed_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">No student quiz reports found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

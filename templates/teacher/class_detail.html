@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Class {{ classroom.name }} | AI Quiz Analyzer{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Breadcrumb & Class Header -->
+    <div class="card card-custom p-4 border-0 mb-4 bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1 text-muted small fw-semibold">
+                        <li class="breadcrumb-item"><a href="{% url 'teacher_dashboard' %}" class="text-decoration-none text-muted"><i class="bi bi-house me-1"></i>Classes</a></li>
+                        <li class="breadcrumb-item active text-primary fw-bold">{{ classroom.name }}</li>
+                    </ol>
+                </nav>
+                <div class="d-flex align-items-center gap-3">
+                    <h3 class="fw-bold text-dark mb-0"><i class="bi bi-mortarboard text-primary me-2"></i>Class {{ classroom.name }}</h3>
+                    <span class="badge bg-secondary font-monospace fs-6">Code: {{ classroom.code }}</span>
+                    <span class="badge bg-primary-subtle text-primary fw-bold fs-6">{{ classroom.subject }}</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-2">
+                <a href="{% url 'upload_document_class' classroom.id %}" class="btn btn-purple">
+                    <i class="bi bi-cloud-upload me-1"></i> Upload Document
+                </a>
+                <form method="post" action="{% url 'delete_class' classroom.id %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete Class {{ classroom.name }}? All associated documents and quiz records will be permanently removed.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i> Delete Class
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Sections -->
+    <div class="row g-4">
+        <!-- Class Learning Materials -->
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 border-0 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Learning Materials ({{ documents.count }})</h5>
+                    <a href="{% url 'upload_document_class' classroom.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg me-1"></i> Add Material
+                    </a>
+                </div>
+
+                {% if documents %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small text-uppercase">
+                                <tr>
+                                    <th class="py-2">Document</th>
+                                    <th class="py-2">Pages</th>
+                                    <th class="py-2">Status</th>
+                                    <th class="py-2 text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in documents %}
+                                <tr>
+                                    <td class="py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="p-2 bg-danger-subtle text-danger rounded me-2">
+                                                <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="text-dark d-block">{{ doc.title }}</strong>
+                                                <span class="small text-muted">{{ doc.upload_date|date:"M d, Y" }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="fw-semibold">{{ doc.total_pages }} Pages</td>
+                                    <td>
+                                        {% if doc.processing_status == 'COMPLETED' %}
+                                            <span class="badge bg-success-subtle text-success">
+                                                <i class="bi bi-check-circle me-1"></i> Ready
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ doc.get_processing_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'document_viewer' doc.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'delete_document' doc.id %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete document \'{{ doc.title }}\'?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-file-earmark-x fs-1 d-block mb-2 text-secondary"></i>
+                        <p class="mb-2">No documents uploaded to this class yet.</p>
+                        <a href="{% url 'upload_document_class' classroom.id %}" class="btn btn-sm btn-purple">
+                            <i class="bi bi-cloud-upload me-1"></i> Upload First Document
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Enrolled Students -->
+        <div class="col-lg-4">
+            <div class="card card-custom p-4 border-0 mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-person-plus text-primary me-2"></i>Enroll Student</h5>
+                <form method="post" action="{% url 'enroll_student' classroom.id %}" class="mb-3">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="email" name="student_email" class="form-control form-control-sm" placeholder="student@classroom.edu" required>
+                        <button type="submit" class="btn btn-purple btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i> Enroll
+                        </button>
+                    </div>
+                    <div class="form-text small">Enter student's email to grant access to this class.</div>
+                </form>
+
+                <h6 class="fw-bold text-muted small text-uppercase tracking-wider mt-4 mb-2">Enrolled Roster ({{ enrollments.count }})</h6>
+                {% if enrollments %}
+                    <ul class="list-group list-group-flush">
+                        {% for item in enrollments %}
+                            <li class="list-group-item px-0 py-2 border-0 border-bottom d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person-circle fs-5 text-primary me-2"></i>
+                                    <div>
+                                        <span class="fw-semibold text-dark d-block">{{ item.student.username }}</span>
+                                        <span class="small text-muted">{{ item.student.email|default:"student@classroom.edu" }}</span>
+                                    </div>
+                                </div>
+                                <span class="small text-muted">{{ item.enrolled_at|date:"M d" }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted small mb-0">No students currently enrolled in this class.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

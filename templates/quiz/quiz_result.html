@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz Completed | AI Quiz Analyzer{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header Card -->
+            <div class="card card-custom p-4 p-md-5 border-0 shadow text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3 mx-auto" style="width: 72px; height: 72px;">
+                    <i class="bi bi-trophy-fill fs-1 text-success"></i>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">QUIZ COMPLETED</h2>
+                <p class="text-muted mb-4">{{ attempt.document.title }}</p>
+
+                <!-- Score Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <span class="small text-muted text-uppercase fw-semibold d-block">Attempted</span>
+                            <h4 class="fw-bold text-dark mb-0">{{ attempt.questions_attempted }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-success-subtle rounded-3 border border-success-subtle">
+                            <span class="small text-success text-uppercase fw-semibold d-block">Correct</span>
+                            <h4 class="fw-bold text-success mb-0">{{ attempt.correct_answers }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-danger-subtle rounded-3 border border-danger-subtle">
+                            <span class="small text-danger text-uppercase fw-semibold d-block">Wrong</span>
+                            <h4 class="fw-bold text-danger mb-0">{{ attempt.wrong_answers }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-indigo-subtle rounded-3 border border-indigo-subtle" style="background: #e0e7ff;">
+                            <span class="small text-indigo text-uppercase fw-semibold d-block" style="color: #4f46e5;">Final Score</span>
+                            <h4 class="fw-bold text-indigo mb-0" style="color: #4f46e5;">{{ attempt.score }}</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Score Percentage Callout -->
+                <div class="p-3 rounded-3 mb-4 border" style="background: #f8fafc;">
+                    <h3 class="fw-bold mb-1 {% if attempt.percentage >= 75 %}text-success{% elif attempt.percentage >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ attempt.percentage }}%
+                    </h3>
+                    <p class="small text-muted mb-0">Calculated strictly from {{ attempt.questions_attempted }} attempted questions.</p>
+                </div>
+
+                <!-- Reading Boundary Badge -->
+                <div class="d-flex justify-content-center gap-3 flex-wrap text-muted small">
+                    <span><i class="bi bi-book me-1 text-primary"></i> Reading Coverage: <strong>Pages 1 - {{ attempt.confirmed_page }}</strong></span>
+                    <span><i class="bi bi-geo-alt me-1 text-danger"></i> Boundary: <strong>Page {{ attempt.confirmed_page }}, Paragraph {{ attempt.confirmed_paragraph }}, Line {{ attempt.confirmed_line }}</strong></span>
+                </div>
+            </div>
+
+            <!-- Detailed Answers Breakdown -->
+            <div class="card card-custom p-4 border-0 mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-list-check text-primary me-2"></i>Itemized Question Breakdown</h5>
+
+                {% for q in questions %}
+                    <div class="p-3 mb-3 rounded-3 border {% if q.is_correct %}border-success-subtle bg-success-subtle{% else %}border-danger-subtle bg-danger-subtle{% endif %}" style="--bs-bg-opacity: 0.15;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge {% if q.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if q.is_correct %}<i class="bi bi-check-circle me-1"></i> Correct{% else %}<i class="bi bi-x-circle me-1"></i> Wrong{% endif %}
+                            </span>
+                            <span class="badge bg-light text-dark border">Source Page {{ q.source_page }}</span>
+                        </div>
+
+                        <p class="fw-bold text-dark mb-2">{{ forloop.counter }}. {{ q.question_text }}</p>
+
+                        <div class="row g-2 mb-2 small">
+                            <div class="col-md-6">
+                                <strong>Your Answer:</strong> Option {{ q.student_answer }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Correct Answer:</strong> Option {{ q.correct_answer }}
+                            </div>
+                        </div>
+
+                        <div class="p-2 bg-white rounded border small text-muted">
+                            <i class="bi bi-info-circle text-primary me-1"></i> <strong>Explanation:</strong> {{ q.explanation }}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted small">No questions attempted in this quiz session.</p>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'student_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-house me-1"></i> Back to Classes
+                </a>
+                <a href="{% url 'confirm_progress' attempt.document.id %}" class="btn btn-quick-quiz">
+                    <i class="bi bi-lightning-charge-fill me-1"></i> Retake Quick Quiz
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

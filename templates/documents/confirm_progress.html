@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Reading Progress | AI Quiz Analyzer{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card card-custom p-4 p-md-5 border-0 shadow">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 64px; height: 64px;">
+                        <i class="bi bi-shield-check fs-2 text-primary"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-1">READING PROGRESS</h3>
+                    <p class="text-muted small">Confirm your actual reading boundary before generating AI questions.</p>
+                </div>
+
+                <div class="bg-indigo-subtle p-3 rounded-3 mb-4 text-center border" style="background: #e0e7ff; border-color: #c7d2fe !important;">
+                    <p class="text-indigo mb-1 fw-semibold" style="color: #3730a3;">We detected that you have reached:</p>
+                    <h4 class="fw-bold text-indigo mb-0" style="color: #4f46e5;">Page {{ detected_page }} of {{ total_pages }}</h4>
+                    <p class="small text-muted mb-0 mt-1">Is this correct?</p>
+                </div>
+
+                <form method="post" action="{% url 'confirm_progress' document.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="confirmed_page" id="confirmed_page_input" value="{{ detected_page }}">
+
+                    <!-- Quick Confirm Button -->
+                    <button type="submit" class="btn btn-purple w-100 py-3 mb-4 fw-bold fs-6 shadow-sm">
+                        <i class="bi bi-check2-circle fs-5 me-2"></i> YES, I READ UP TO PAGE {{ detected_page }}
+                    </button>
+
+                    <div class="position-relative text-center my-4">
+                        <hr class="text-muted">
+                        <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small fw-semibold">OR ADJUST BOUNDARY</span>
+                    </div>
+
+                    <!-- Granularity Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-dark mb-2">I have completed:</label>
+
+                        <div class="mb-3">
+                            <label for="custom_page_num" class="form-label small text-muted">Page Number:</label>
+                            <input type="number" id="custom_page_num" name="custom_page_num" class="form-control" value="{{ detected_page }}" min="1" max="{{ total_pages }}" onchange="updatePageInput(this.value)">
+                        </div>
+
+                        <label class="form-label fw-semibold text-dark mb-2">More precise location cutoff:</label>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="granularity" id="granularity_page" value="page" checked onclick="toggleGranularityInputs('page')">
+                            <label class="form-check-label fw-semibold" for="granularity_page">
+                                Entire Page
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="granularity" id="granularity_paragraph" value="paragraph" onclick="toggleGranularityInputs('paragraph')">
+                            <label class="form-check-label fw-semibold" for="granularity_paragraph">
+                                Up to Paragraph Number
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="granularity" id="granularity_line" value="line" onclick="toggleGranularityInputs('line')">
+                            <label class="form-check-label fw-semibold" for="granularity_line">
+                                Up to Paragraph & Line Number
+                            </label>
+                        </div>
+
+                        <!-- Paragraph Input -->
+                        <div id="paragraph_input_container" class="p-3 bg-light rounded border mb-3" style="display: none;">
+                            <label for="paragraph_num" class="form-label small fw-semibold">Paragraph Number:</label>
+                            <input type="number" id="paragraph_num" name="paragraph_num" class="form-control form-control-sm" value="2" min="1">
+                        </div>
+
+                        <!-- Line Input -->
+                        <div id="line_input_container" class="p-3 bg-light rounded border mb-3" style="display: none;">
+                            <label for="line_num" class="form-label small fw-semibold">Line Number:</label>
+                            <input type="number" id="line_num" name="line_num" class="form-control form-control-sm" value="3" min="1">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-primary w-100 py-2.5 fw-bold">
+                        <i class="bi bi-arrow-right-circle me-1"></i> CONFIRM & CONTINUE TO QUIZ
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updatePageInput(val) {
+        document.getElementById('confirmed_page_input').value = val;
+    }
+
+    function toggleGranularityInputs(type) {
+        const paraContainer = document.getElementById('paragraph_input_container');
+        const lineContainer = document.getElementById('line_input_container');
+
+        if (type === 'page') {
+            paraContainer.style.display = 'none';
+            lineContainer.style.display = 'none';
+        } else if (type === 'paragraph') {
+            paraContainer.style.display = 'block';
+            lineContainer.style.display = 'none';
+        } else if (type === 'line') {
+            paraContainer.style.display = 'block';
+            lineContainer.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}

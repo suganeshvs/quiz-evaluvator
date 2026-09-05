@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Dashboard | AI Quiz Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Teacher Dashboard</h2>
+            <p class="text-muted mb-0">Welcome back, {{ user.username }}! Manage your Google Classroom materials and student AI quizzes.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'create_class' %}" class="btn btn-outline-primary">
+                <i class="bi bi-plus-lg me-1"></i> Create Class
+            </a>
+            <a href="{% url 'upload_document' %}" class="btn btn-purple">
+                <i class="bi bi-cloud-upload me-1"></i> Upload Material
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card card-custom p-3 border-0">
+                <div class="d-flex align-items-center">
+                    <div class="p-3 bg-primary-subtle text-primary rounded-3 me-3">
+                        <i class="bi bi-journal-bookmark fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 small text-uppercase fw-semibold">My Classes</h6>
+                        <h3 class="fw-bold mb-0">{{ classes.count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-custom p-3 border-0">
+                <div class="d-flex align-items-center">
+                    <div class="p-3 bg-indigo-subtle text-indigo rounded-3 me-3" style="background: #e0e7ff; color: #4f46e5;">
+                        <i class="bi bi-file-earmark-pdf fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 small text-uppercase fw-semibold">Documents</h6>
+                        <h3 class="fw-bold mb-0">{{ documents.count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-custom p-3 border-0">
+                <div class="d-flex align-items-center">
+                    <div class="p-3 bg-success-subtle text-success rounded-3 me-3">
+                        <i class="bi bi-people fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 small text-uppercase fw-semibold">Enrolled Students</h6>
+                        <h3 class="fw-bold mb-0">{{ total_students }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-custom p-3 border-0">
+                <div class="d-flex align-items-center">
+                    <div class="p-3 bg-warning-subtle text-warning rounded-3 me-3">
+                        <i class="bi bi-ui-checks-grid fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 small text-uppercase fw-semibold">Quiz Activity</h6>
+                        <h3 class="fw-bold mb-0">{{ recent_attempts.count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Classes Section -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 border-0">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-mortarboard text-primary me-2"></i>My Classes</h5>
+                    <a href="{% url 'create_class' %}" class="btn btn-sm btn-light">Add New</a>
+                </div>
+
+                {% if classes %}
+                    <div class="row g-3">
+                        {% for c in classes %}
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-light position-relative">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <a href="{% url 'class_detail' c.id %}" class="text-decoration-none text-dark">
+                                        <h6 class="fw-bold text-dark mb-0 hover-primary"><i class="bi bi-mortarboard-fill text-primary me-1"></i> {{ c.name }}</h6>
+                                    </a>
+                                    <span class="badge bg-secondary font-monospace">{{ c.code }}</span>
+                                </div>
+                                <p class="text-muted small mb-2"><i class="bi bi-book me-1"></i> Subject: {{ c.subject }}</p>
+                                <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                                    <span class="small text-muted">{{ c.documents.count }} Documents</span>
+                                    <div class="d-flex gap-1">
+                                        <a href="{% url 'class_detail' c.id %}" class="btn btn-sm btn-purple">
+                                            Open <i class="bi bi-arrow-right-short"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'delete_class' c.id %}" class="d-inline" onsubmit="return confirm('Delete class {{ c.name }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Class">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-journal-x fs-1 mb-2 d-block text-secondary"></i>
+                        <p class="mb-2">No classes created yet.</p>
+                        <a href="{% url 'create_class' %}" class="btn btn-sm btn-primary">Create Your First Class</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card card-custom p-4 border-0">
+                <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-indigo me-2" style="color: #4f46e5;"></i>Recent Student Quizzes</h5>
+                {% if recent_attempts %}
+                    <ul class="list-group list-group-flush">
+                        {% for attempt in recent_attempts %}
+                        <li class="list-group-item px-0 py-2 border-0 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="mb-0 fw-semibold text-dark">{{ attempt.student.username }}</p>
+                                    <span class="small text-muted">{{ attempt.document.title }}</span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success">{{ attempt.score }}</span>
+                                    <div class="small text-muted">{{ attempt.percentage }}%</div>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted small mb-0">No quiz attempts recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

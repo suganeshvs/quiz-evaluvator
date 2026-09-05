@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ document.title }} | Document Reader{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Top Classroom Header Bar -->
+    <div class="card card-custom p-3 border-0 mb-4 bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1 text-muted small fw-semibold">
+                        <li class="breadcrumb-item"><a href="{% url 'student_dashboard' %}" class="text-decoration-none text-muted"><i class="bi bi-house me-1"></i>Classes</a></li>
+                        <li class="breadcrumb-item text-muted">{{ document.classroom.name }}</li>
+                        <li class="breadcrumb-item text-muted">{{ document.classroom.subject }}</li>
+                        <li class="breadcrumb-item active text-primary fw-bold">{{ document.title }}</li>
+                    </ol>
+                </nav>
+                <h4 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-pdf text-danger"></i> {{ document.title }}
+                </h4>
+            </div>
+
+            <!-- PROMINENT RECTANGULAR QUICK QUIZ BUTTON IN TOP RIGHT -->
+            <div>
+                <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz">
+                    <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Document Reader Area -->
+        <div class="col-lg-9">
+            <div class="card card-custom p-4 p-md-5 border-0 shadow-sm min-vh-50" style="min-height: 520px; background: #ffffff;">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                    <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
+                        <i class="bi bi-file-text me-1 text-primary"></i> Page {{ current_page_num }} of {{ total_pages }}
+                    </span>
+                    <span class="text-muted small">
+                        <i class="bi bi-eye me-1"></i> Highest Reached: Page <strong id="highestPageText">{{ progress.highest_page }}</strong>
+                    </span>
+                </div>
+
+                <!-- PAGE CONTENT DISPLAY -->
+                {% if current_page %}
+                    <div class="document-page-content">
+                        {% for paragraph in current_page.paragraphs_data %}
+                            <div class="mb-4">
+                                <span class="badge bg-light text-muted border mb-2 me-2">Para {{ paragraph.paragraph_number }}</span>
+                                <p class="fs-5 text-dark leading-relaxed" style="line-height: 1.8;">
+                                    {{ paragraph.text }}
+                                </p>
+                            </div>
+                        {% empty %}
+                            <div class="fs-5 text-dark leading-relaxed mb-4" style="line-height: 1.8;">
+                                {{ current_page.extracted_text|linebreaks }}
+                            </div>
+                        {% endfor %}
+
+                        <!-- Visual Image / Diagram Section -->
+                        {% if current_page.has_image %}
+                            <div class="my-4 p-4 border rounded-3 text-center" style="background: #f1f5f9; border-left: 4px solid #4f46e5 !important;">
+                                <div class="mb-2">
+                                    <span class="badge bg-indigo-subtle text-indigo fw-bold px-3 py-1" style="background: #e0e7ff; color: #4f46e5;">
+                                        <i class="bi bi-image me-1"></i> Educational Visual Diagram
+                                    </span>
+                                </div>
+                                <div class="p-3 my-2 bg-white rounded shadow-sm d-inline-block border text-muted">
+                                    <i class="bi bi-diagram-3-fill fs-1 text-primary d-block mb-2"></i>
+                                    <p class="mb-0 fw-semibold text-dark">{{ current_page.image_description }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <p>No content available for page {{ current_page_num }}.</p>
+                    </div>
+                {% endif %}
+
+                <!-- Footer Reader Navigation Controls -->
+                <div class="d-flex justify-content-between align-items-center border-top pt-4 mt-auto">
+                    {% if current_page_num > 1 %}
+                        <a href="?page={{ current_page_num|add:'-1' }}" class="btn btn-outline-secondary px-4">
+                            <i class="bi bi-chevron-left me-1"></i> Previous
+                        </a>
+                    {% else %}
+                        <button class="btn btn-outline-secondary px-4" disabled>
+                            <i class="bi bi-chevron-left me-1"></i> Previous
+                        </button>
+                    {% endif %}
+
+                    <span class="text-muted fw-semibold">Page {{ current_page_num }} of {{ total_pages }}</span>
+
+                    {% if current_page_num < total_pages %}
+                        <a href="?page={{ current_page_num|add:'1' }}" class="btn btn-purple px-4">
+                            Next <i class="bi bi-chevron-right ms-1"></i>
+                        </a>
+                    {% else %}
+                        <button class="btn btn-purple px-4" disabled>
+                            End of Material
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Progress & Quick Quiz Panel -->
+        <div class="col-lg-3">
+            <div class="card card-custom p-4 border-0 mb-4 sticky-top" style="top: 80px;">
+                <h6 class="fw-bold text-uppercase text-muted tracking-wider small mb-3">Reading Progress Tracker</h6>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold">Coverage</span>
+                        <span class="small fw-bold text-primary">{{ progress.percentage }}%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress.percentage }}%;"></div>
+                    </div>
+                </div>
+
+                <ul class="list-unstyled small text-muted mb-4">
+                    <li class="mb-2"><i class="bi bi-book-half text-primary me-2"></i> Current: <strong>Page {{ current_page_num }}</strong></li>
+                    <li class="mb-2"><i class="bi bi-check2-all text-success me-2"></i> Highest Reached: <strong>Page {{ progress.highest_page }}</strong></li>
+                    <li class="mb-2"><i class="bi bi-clock-history text-warning me-2"></i> Time Spent: <strong>{{ progress.time_spent }} sec</strong></li>
+                </ul>
+
+                <hr class="my-3">
+
+                <div class="text-center">
+                    <p class="small text-muted mb-3">Ready to test your knowledge on what you have read so far?</p>
+                    <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz w-100 justify-content-center">
+                        <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Real-time Reading Progress Tracker AJAX Pinger
+    const docId = {{ document.id }};
+    const currentPageNum = {{ current_page_num }};
+    
+    function sendReadingPing() {
+        fetch(`/api/document/${docId}/ping/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                page_number: currentPageNum,
+                duration: 5
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                const pageElem = document.getElementById('highestPageText');
+                if(pageElem && data.highest_page) {
+                    pageElem.innerText = data.highest_page;
+                }
+            }
+        })
+        .catch(err => console.error("Ping error:", err));
+    }
+
+    // Ping every 5 seconds while viewing
+    setInterval(sendReadingPing, 5000);
+    sendReadingPing(); // initial ping
+</script>
+{% endblock %}

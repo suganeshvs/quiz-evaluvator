@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard | AI Quiz Analyzer{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Student Portal</h2>
+            <p class="text-muted mb-0">Welcome {{ user.username }}! Select a document to read and take AI Quick Quizzes.</p>
+        </div>
+        <a href="{% url 'quiz_history' %}" class="btn btn-outline-purple border-indigo" style="color: #4f46e5; border-color: #818cf8;">
+            <i class="bi bi-clock-history me-1"></i> Quiz History
+        </a>
+    </div>
+
+    <!-- Enrolled Classes & Materials -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 border-0 mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-book text-primary me-2"></i>My Learning Materials</h5>
+
+                {% if documents %}
+                    <div class="list-group list-group-flush">
+                        {% for doc in documents %}
+                            <div class="list-group-item px-0 py-3 border-0 border-bottom">
+                                <div class="row align-items-center g-3">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center">
+                                            <div class="p-3 bg-danger-subtle text-danger rounded-3 me-3">
+                                                <i class="bi bi-file-earmark-pdf fs-3"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold text-dark mb-1">{{ doc.title }}</h6>
+                                                <span class="badge bg-light text-secondary border me-2">{{ doc.classroom.name }} - {{ doc.classroom.subject }}</span>
+                                                <span class="small text-muted">{{ doc.total_pages }} Pages</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-md-end">
+                                        <div class="d-inline-flex align-items-center justify-content-md-end gap-2 flex-wrap">
+                                            <a href="{% url 'document_viewer' doc.id %}" class="btn btn-purple btn-sm px-3 py-2 fw-semibold text-nowrap d-inline-flex align-items-center gap-1">
+                                                <i class="bi bi-book-half"></i> Read Document
+                                            </a>
+                                            <a href="{% url 'confirm_progress' doc.id %}" class="btn btn-quick-quiz btn-sm text-nowrap">
+                                                <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-folder-x fs-1 d-block mb-2 text-secondary"></i>
+                        No learning documents assigned to your classes yet.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card card-custom p-4 border-0">
+                <h5 class="fw-bold mb-3"><i class="bi bi-check-circle text-success me-2"></i>My Recent Attempts</h5>
+                {% if recent_attempts %}
+                    <div class="list-group list-group-flush">
+                        {% for attempt in recent_attempts %}
+                            <a href="{% url 'quiz_result' attempt.id %}" class="list-group-item list-group-item-action px-0 py-2 border-0 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="mb-0 fw-semibold text-dark">{{ attempt.document.title }}</p>
+                                        <span class="small text-muted">Read to Page {{ attempt.confirmed_page }}</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-success font-monospace">{{ attempt.score }}</span>
+                                        <div class="small fw-bold text-primary">{{ attempt.percentage }}%</div>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">No quiz attempts yet. Start reading a document and click QUICK QUIZ!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

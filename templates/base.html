@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Quiz Analyzer in Google Classroom{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome & Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary-purple: #818cf8;
+            --accent-purple: #e0e7ff;
+            --bg-light: #f8fafc;
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-light);
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Classroom style Header Navbar */
+        .navbar-classroom {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            padding: 0.8rem 1.5rem;
+        }
+
+        .brand-logo {
+            font-weight: 700;
+            color: var(--primary-purple);
+            font-size: 1.35rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-role {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.35em 0.75em;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-teacher {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-student {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .btn-purple {
+            background-color: var(--primary-purple);
+            color: #ffffff;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-purple:hover {
+            background-color: var(--primary-hover);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        }
+
+        .card-custom {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card-custom:hover {
+            box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Rectangular QUICK QUIZ Button */
+        .btn-quick-quiz {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.8px;
+            padding: 0.65rem 1.5rem;
+            border-radius: 6px; /* Explicit rectangle shape */
+            border: 2px solid #6366f1;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+            text-decoration: none;
+            line-height: 1.5;
+        }
+
+        .btn-quick-quiz.btn-sm {
+            padding: 0.45rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+
+        .btn-quick-quiz:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .content-container {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        footer {
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-classroom sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand brand-logo" href="{% url 'dashboard' %}">
+                <i class="bi bi-mortarboard-fill"></i> AI Quiz Analyzer
+                <span class="fs-6 text-muted fw-normal ms-2 d-none d-md-inline">| Google Classroom</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                {% if user.is_authenticated %}
+                <ul class="navbar-nav me-auto ms-lg-4 mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold px-3" href="{% url 'dashboard' %}"><i class="bi bi-house-door me-1"></i> Home</a>
+                    </li>
+                    {% if user.is_teacher %}
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold px-3" href="{% url 'teacher_document_list' %}"><i class="bi bi-file-earmark-text me-1"></i> Documents</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold px-3" href="{% url 'teacher_student_list' %}"><i class="bi bi-people me-1"></i> Students</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold px-3" href="{% url 'teacher_reports' %}"><i class="bi bi-graph-up-arrow me-1"></i> Quiz Reports</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold px-3" href="{% url 'student_dashboard' %}"><i class="bi bi-journal-bookmark me-1"></i> My Classes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold px-3" href="{% url 'quiz_history' %}"><i class="bi bi-clock-history me-1"></i> Quiz History</a>
+                        </li>
+                    {% endif %}
+                </ul>
+
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge-role {% if user.is_teacher %}badge-teacher{% else %}badge-student{% endif %}">
+                        <i class="bi {% if user.is_teacher %}bi-person-badge{% else %}bi-backpack{% endif %} me-1"></i>
+                        {{ user.get_role_display }}
+                    </span>
+                    <span class="fw-semibold text-secondary">{{ user.username }}</span>
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm ms-2">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    <div class="container mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show border-0 shadow-sm" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 AI Quiz Analyzer | Simulated Google Classroom Integration</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

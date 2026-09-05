@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz History | AI Quiz Analyzer{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <div class="mb-4">
+        <h3 class="fw-bold mb-1">Quiz Attempt History</h3>
+        <p class="text-muted mb-0">Review all your previous Quick Quiz attempts and progress over time.</p>
+    </div>
+
+    <div class="card card-custom border-0 p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3">Attempt Date</th>
+                        <th class="py-3">Document Title</th>
+                        <th class="py-3">Reading Coverage</th>
+                        <th class="py-3">Attempted</th>
+                        <th class="py-3">Score</th>
+                        <th class="py-3">Percentage</th>
+                        <th class="pe-4 py-3 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in attempts %}
+                    <tr>
+                        <td class="ps-4 py-3 text-muted small">
+                            <i class="bi bi-calendar-event me-1"></i> {{ attempt.completed_at|date:"M d, Y H:i" }}
+                        </td>
+                        <td class="fw-bold text-dark">{{ attempt.document.title }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border">Pages 1-{{ attempt.confirmed_page }}</span>
+                        </td>
+                        <td>{{ attempt.questions_attempted }} questions</td>
+                        <td class="fw-bold text-primary font-monospace">{{ attempt.score }}</td>
+                        <td>
+                            {% if attempt.percentage >= 75 %}
+                                <span class="badge bg-success">{{ attempt.percentage }}%</span>
+                            {% elif attempt.percentage >= 50 %}
+                                <span class="badge bg-warning text-dark">{{ attempt.percentage }}%</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ attempt.percentage }}%</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="{% url 'quiz_result' attempt.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-file-earmark-bar-graph me-1"></i> View Report
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">No completed quiz attempts found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

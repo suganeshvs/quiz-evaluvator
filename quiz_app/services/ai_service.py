@@ -1,5 +1,6 @@
 import json
 import random
+import re
 import urllib.request
 import urllib.parse
 from django.conf import settings
@@ -45,10 +46,16 @@ class AIService:
     def _generate_ollama_mcqs(allowed_content_info, count):
         """
         Queries local Ollama API (http://localhost:11434/api/chat) to generate structured JSON MCQs.
+        Auto-detects installed Ollama models and handles robust JSON parsing.
         """
         base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434').rstrip('/')
         url = f"{base_url}/api/chat"
-        model = getattr(settings, 'OLLAMA_MODEL', 'llama3.2')
+        preferred_model = getattr(settings, 'OLLAMA_MODEL', 'llama3.2')
+        
+        # 1. Auto-detect installed model in Ollama if preferred model isn't available
+        model = AIService._resolve_ollama_model(base_url, preferred_model)
+        if not model:
+            raise Exception("No AI models downloaded in Ollama yet. Please run 'ollama pull llama3.2' to download a model.")
 
         prompt_text = allowed_content_info['full_allowed_text']
         confirmed_page = allowed_content_info['confirmed_boundary']['page']
@@ -86,17 +93,54 @@ class AIService:
             method='POST'
         )
 
-        # Timeout set to 25 seconds for local LLM inference
-        with urllib.request.urlopen(req, timeout=25) as response:
+        # Extended timeout to 90 seconds for local LLM inference
+        with urllib.request.urlopen(req, timeout=90) as response:
             res_data = json.loads(response.read().decode('utf-8'))
             content_str = res_data.get('message', {}).get('content', '')
 
-            parsed = json.loads(content_str)
+            # Robust JSON extraction (handles markdown ```json ... ``` wrappers)
+            cleaned = content_str.strip()
+            if "```" in cleaned:
+                match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', cleaned)
+                if match:
+                    cleaned = match.group(1)
+            
+            json_match = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', cleaned)
+            if json_match:
+                cleaned = json_match.group(1)
+
+            parsed = json.loads(cleaned)
             if isinstance(parsed, dict) and "questions" in parsed:
                 return parsed["questions"]
             elif isinstance(parsed, list):
                 return parsed
             return []
+
+    @staticmethod
+    def _resolve_ollama_model(base_url, preferred_model):
+        """
+        Queries /api/tags to find an active model in Ollama.
+        """
+        try:
+            tags_url = f"{base_url}/api/tags"
+            req = urllib.request.Request(tags_url)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                models = [m.get('name') for m in data.get('models', []) if m.get('name')]
+                if not models:
+                    return None
+                
+                # Check for preferred model or model family match
+                for m in models:
+                    if preferred_model in m or m.startswith(preferred_model.split(':')[0]):
+                        return m
+                
+                # Return first available model if preferred model isn't downloaded yet
+                print(f"Ollama preferred model '{preferred_model}' not found. Using available model '{models[0]}'.")
+                return models[0]
+        except Exception as e:
+            print(f"Could not fetch Ollama models list: {e}")
+            return preferred_model
 
     @staticmethod
     def _generate_mock_mcqs(allowed_content_info, count=5, existing_questions=None):

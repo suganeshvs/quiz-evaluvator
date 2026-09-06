@@ -1,19 +1,34 @@
 @echo off
-TITLE AI Quiz Evaluator - Installer & Launcher
+TITLE AI Quiz Evaluator - Complete Auto-Installer & Launcher
 COLOR 0A
 
 echo =========================================================================
-echo               AI Quiz Evaluator - Setup & Launch Script
+echo              AI Quiz Evaluator - Complete Auto-Installer
 echo =========================================================================
 echo.
 
-:: 1. Check Python installation
+:: 1. Check Python installation and auto-install if missing
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Python is not installed or not in PATH!
-    echo Please install Python 3.10+ from https://www.python.org/ and try again.
-    pause
-    exit /b 1
+    echo [NOTICE] Python is not detected on this machine.
+    echo Downloading and installing Python 3.11 automatically (with Add to PATH enabled)...
+    echo.
+    powershell -Command "$installer = '$env:TEMP\python-installer.exe'; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe' -OutFile $installer; Start-Process -FilePath $installer -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait; Remove-Item $installer"
+    
+    :: Refresh Environment PATH variables in current session
+    for /f "tokens=2*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul') do set "SYS_PATH=%%B"
+    for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v Path 2^>nul') do set "USER_PATH=%%B"
+    set "PATH=%SYS_PATH%;%USER_PATH%;C:\Program Files\Python311;C:\Program Files\Python311\Scripts;%PATH%"
+    
+    python --version >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [ERROR] Python installation requires system restart to update PATH.
+        echo Please restart your computer and run install_and_run.bat again.
+        pause
+        exit /b 1
+    )
+    echo Python installed successfully!
+    echo.
 )
 
 echo [1/5] Python detected! Setting up virtual environment...

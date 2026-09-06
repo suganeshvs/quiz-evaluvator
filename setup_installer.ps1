@@ -5,14 +5,29 @@ Write-Host "              AI Quiz Evaluator - Setup & Launch Script" -Foreground
 Write-Host "=========================================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Check Python
-try {
+# 1. Check Python and auto-install Python 3.11 with PrependPath=1 if missing
+$pythonCheck = Get-Command python -ErrorAction SilentlyContinue
+if (-not $pythonCheck) {
+    Write-Host "[NOTICE] Python is not installed. Auto-downloading and installing Python 3.11..." -ForegroundColor Yellow
+    $url = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+    $installerPath = "$env:TEMP\python-3.11.9-amd64.exe"
+    
+    Write-Host "Downloading Python installer from Python.org..." -ForegroundColor Yellow
+    Invoke-WebRequest -Uri $url -OutFile $installerPath
+    
+    Write-Host "Installing Python 3.11 silently with 'Add Python to PATH' enabled..." -ForegroundColor Yellow
+    Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+    Remove-Item $installerPath -ErrorAction SilentlyContinue
+    
+    # Refresh PATH in current process
+    $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+    $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
+    $env:PATH = "$machinePath;$userPath;C:\Program Files\Python311;C:\Program Files\Python311\Scripts;$env:PATH"
+    
+    Write-Host "Python 3.11 installed successfully!" -ForegroundColor Green
+} else {
     $pythonVersion = python --version 2>&1
     Write-Host "[1/5] Python detected: $pythonVersion" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Python is not installed or not in PATH!" -ForegroundColor Red
-    Write-Host "Please install Python 3.10+ from https://www.python.org/ and try again." -ForegroundColor Yellow
-    Exit 1
 }
 
 # 2. Virtual Environment

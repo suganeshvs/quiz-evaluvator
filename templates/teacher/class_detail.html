@@ -148,5 +148,69 @@
             </div>
         </div>
     </div>
+
+    <!-- Student Quiz Attempt Records in this Class -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card card-custom p-4 border-0 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Student Quiz Records in Class {{ classroom.name }} ({{ quiz_attempts.count }})</h5>
+                </div>
+
+                {% if quiz_attempts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small text-uppercase">
+                                <tr>
+                                    <th class="ps-3 py-2">Attempt Date</th>
+                                    <th class="py-2">Student</th>
+                                    <th class="py-2">Material / Document</th>
+                                    <th class="py-2">Reading Coverage</th>
+                                    <th class="py-2">Attempted</th>
+                                    <th class="py-2">Score</th>
+                                    <th class="py-2">Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for att in quiz_attempts %}
+                                <tr>
+                                    <td class="ps-3 py-3 text-muted small">
+                                        <i class="bi bi-calendar-event me-1"></i> {{ att.completed_at|date:"M d, Y H:i" }}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-circle text-primary me-2"></i>
+                                            <strong class="text-dark">{{ att.student.username }}</strong>
+                                        </div>
+                                    </td>
+                                    <td class="fw-semibold text-dark">{{ att.document.title }}</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">Pages 1-{{ att.confirmed_page }}</span>
+                                    </td>
+                                    <td>{{ att.questions_attempted }} Questions</td>
+                                    <td class="fw-bold text-primary font-monospace">{{ att.score }}</td>
+                                    <td>
+                                        {% if att.percentage >= 75 %}
+                                            <span class="badge bg-success">{{ att.percentage }}%</span>
+                                        {% elif att.percentage >= 50 %}
+                                            <span class="badge bg-warning text-dark">{{ att.percentage }}%</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ att.percentage }}%</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-journal-x fs-2 d-block mb-1 text-secondary"></i>
+                        <p class="mb-0">No quiz attempts recorded by students in this class yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

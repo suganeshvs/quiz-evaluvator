@@ -152,10 +152,17 @@ def class_detail(request, class_id):
     documents = classroom.documents.all().order_by('-upload_date')
     enrollments = classroom.enrollments.select_related('student').order_by('enrolled_at')
 
+    # Fetch all completed student quiz attempts for this specific class
+    quiz_attempts = QuizAttempt.objects.filter(
+        document__classroom=classroom,
+        status='COMPLETED'
+    ).select_related('student', 'document').order_by('-completed_at')
+
     context = {
         'classroom': classroom,
         'documents': documents,
         'enrollments': enrollments,
+        'quiz_attempts': quiz_attempts,
     }
     return render(request, 'teacher/class_detail.html', context)
 

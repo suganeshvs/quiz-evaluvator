@@ -67,10 +67,15 @@ class QuizGenerator:
             if correct not in ['A', 'B', 'C', 'D']:
                 correct = 'A'
 
+            # Clean leading question numbers (e.g. '4. ', 'Q1: ') from AI text
+            q_text = q.get('question', '').strip()
+            import re
+            q_text = re.sub(r'^(?:[Qq]\d*[\.\:\)]?\s*|\d+[\.\:\)]?\s*)', '', q_text).strip()
+
             # Save Question
             new_question = QuizQuestion.objects.create(
                 quiz_attempt=quiz_attempt,
-                question_text=q.get('question', ''),
+                question_text=q_text,
                 option_a=opt_a,
                 option_b=opt_b,
                 option_c=opt_c,

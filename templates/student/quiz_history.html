@@ -15,6 +15,7 @@
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
                         <th class="ps-4 py-3">Attempt Date</th>
+                        <th class="py-3">Class</th>
                         <th class="py-3">Document Title</th>
                         <th class="py-3">Reading Coverage</th>
                         <th class="py-3">Attempted</th>
@@ -28,6 +29,9 @@
                     <tr>
                         <td class="ps-4 py-3 text-muted small">
                             <i class="bi bi-calendar-event me-1"></i> {{ attempt.completed_at|date:"M d, Y H:i" }}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary fw-bold">{{ attempt.document.classroom.name }}</span>
                         </td>
                         <td class="fw-bold text-dark">{{ attempt.document.title }}</td>
                         <td>

@@ -50,30 +50,26 @@ class AIService:
         """
         base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434').rstrip('/')
         url = f"{base_url}/api/chat"
-        preferred_model = getattr(settings, 'OLLAMA_MODEL', 'llama3.2')
+        preferred_model = getattr(settings, 'OLLAMA_MODEL', 'llama3.2:1b')
         
         # 1. Auto-detect installed model in Ollama if preferred model isn't available
         model = AIService._resolve_ollama_model(base_url, preferred_model)
         if not model:
-            raise Exception("No AI models downloaded in Ollama yet. Please run 'ollama pull llama3.2' to download a model.")
+            raise Exception("No AI models downloaded in Ollama yet. Please run 'ollama pull llama3.2:1b' to download a model.")
 
         prompt_text = allowed_content_info['full_allowed_text']
+        if len(prompt_text) > 3000:
+            prompt_text = prompt_text[:3000]
+
         confirmed_page = allowed_content_info['confirmed_boundary']['page']
 
         system_prompt = (
-            "You are an educational quiz generator. Generate multiple-choice questions ONLY from the supplied educational content.\n"
-            "STRICT RULES:\n"
-            "1. Use ONLY the supplied content.\n"
-            "2. Do NOT use outside knowledge.\n"
-            "3. Do NOT generate questions from content outside the supplied reading boundary.\n"
-            "4. Each question MUST have exactly four options: option_a, option_b, option_c, option_d.\n"
-            "5. Exactly ONE option must be correct (indicated as 'A', 'B', 'C', or 'D').\n"
-            "6. Include the exact source_page (must be an integer <= " + str(confirmed_page) + ").\n"
-            "7. Include a clear educational explanation.\n"
-            "8. Return JSON strictly in this format: {\"questions\": [{\"question\": \"...\", \"option_a\": \"...\", \"option_b\": \"...\", \"option_c\": \"...\", \"option_d\": \"...\", \"correct_answer\": \"B\", \"source_page\": 1, \"explanation\": \"...\"}]}"
+            "You are a quiz generator. Generate valid JSON MCQs based ONLY on the provided text.\n"
+            "Respond strictly in this JSON format:\n"
+            '{"questions": [{"question": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "correct_answer": "A", "source_page": 1, "explanation": "..."}]}'
         )
 
-        user_prompt = f"Generate {count} distinct MCQs based strictly on this reading material:\n\n{prompt_text}"
+        user_prompt = f"Generate {count} distinct MCQs from this text:\n\n{prompt_text}"
 
         payload = {
             "model": model,
@@ -98,23 +94,114 @@ class AIService:
             res_data = json.loads(response.read().decode('utf-8'))
             content_str = res_data.get('message', {}).get('content', '')
 
-            # Robust JSON extraction (handles markdown ```json ... ``` wrappers)
-            cleaned = content_str.strip()
-            if "```" in cleaned:
-                match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', cleaned)
-                if match:
-                    cleaned = match.group(1)
-            
-            json_match = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', cleaned)
-            if json_match:
-                cleaned = json_match.group(1)
+            # Extract and parse JSON with automatic error repairing
+            return AIService._repair_and_parse_json(content_str)
 
-            parsed = json.loads(cleaned)
-            if isinstance(parsed, dict) and "questions" in parsed:
-                return parsed["questions"]
-            elif isinstance(parsed, list):
-                return parsed
+    @staticmethod
+    def _repair_and_parse_json(content_str):
+        """
+        Repairs common LLM JSON syntax errors (missing commas, trailing commas, bad quotes)
+        and extracts valid MCQ dicts.
+        """
+        if not content_str:
             return []
+
+        cleaned = content_str.strip()
+        if "```" in cleaned:
+            match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', cleaned)
+            if match:
+                cleaned = match.group(1)
+
+        json_match = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', cleaned)
+        if json_match:
+            cleaned = json_match.group(1)
+
+        # 1. Attempt direct parse
+        try:
+            parsed = json.loads(cleaned)
+            normalized = AIService._normalize_mcq_list(parsed)
+            if normalized:
+                return normalized
+        except Exception:
+            pass
+
+        # 2. Syntax repairs on full JSON string
+        repaired = re.sub(r'("\s*)\n?(\s*"[a-zA-Z_]+":)', r'\1,\2', cleaned)
+        repaired = re.sub(r',\s*([\}\]])', r'\1', repaired)
+
+        try:
+            parsed = json.loads(repaired)
+            normalized = AIService._normalize_mcq_list(parsed)
+            if normalized:
+                return normalized
+        except Exception:
+            pass
+
+        # 3. Extract individual question objects using regex pattern matching
+        extracted = []
+        matches = re.findall(r'\{[^{}]*?"question"[^{}]*?\}', cleaned, re.DOTALL)
+        if not matches:
+            matches = re.findall(r'\{[^{}]*?"option_a"[^{}]*?\}', cleaned, re.DOTALL)
+
+        for m in matches:
+            try:
+                d = json.loads(m)
+                if isinstance(d, dict):
+                    extracted.append(d)
+                    continue
+            except Exception:
+                pass
+
+            m_rep = re.sub(r'("\s*)\n?(\s*"[a-zA-Z_]+":)', r'\1,\2', m)
+            m_rep = re.sub(r',\s*([\}\]])', r'\1', m_rep)
+            try:
+                d = json.loads(m_rep)
+                if isinstance(d, dict):
+                    extracted.append(d)
+            except Exception:
+                pass
+
+        return AIService._normalize_mcq_list(extracted)
+
+    @staticmethod
+    def _normalize_mcq_list(raw):
+        """
+        Normalizes any JSON structure (dict with questions/mcqs/data, list of dicts,
+        nested lists, or single dict) into a flat list of question dicts.
+        """
+        if not raw:
+            return []
+
+        if isinstance(raw, dict):
+            for key in ['questions', 'mcqs', 'quiz', 'data', 'results', 'items']:
+                if key in raw and isinstance(raw[key], (list, dict)):
+                    return AIService._normalize_mcq_list(raw[key])
+            if 'question' in raw or 'option_a' in raw or 'question_text' in raw:
+                return [raw]
+            for val in raw.values():
+                if isinstance(val, (list, dict)):
+                    res = AIService._normalize_mcq_list(val)
+                    if res:
+                        return res
+            return []
+
+        if isinstance(raw, list):
+            result = []
+            for item in raw:
+                if isinstance(item, dict):
+                    if 'question' in item or 'option_a' in item or 'question_text' in item:
+                        result.append(item)
+                    else:
+                        res = AIService._normalize_mcq_list(item)
+                        if res:
+                            result.extend(res)
+                elif isinstance(item, list):
+                    res = AIService._normalize_mcq_list(item)
+                    if res:
+                        result.extend(res)
+            return result
+
+        return []
 
     @staticmethod
     def _resolve_ollama_model(base_url, preferred_model):

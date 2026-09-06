@@ -41,6 +41,12 @@ class QuizGenerator:
 
         # 4. Strict Validation Filter
         for q in raw_mcqs:
+            if not isinstance(q, dict):
+                if isinstance(q, list) and q and isinstance(q[0], dict):
+                    q = q[0]
+                else:
+                    continue
+
             source_page = q.get('source_page', confirmed_page)
 
             # STRICT BOUNDARY CHECK: No question from unread pages!

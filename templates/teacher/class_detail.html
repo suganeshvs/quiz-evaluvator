@@ -138,7 +138,14 @@
                                         <span class="small text-muted">{{ item.student.email|default:"student@classroom.edu" }}</span>
                                     </div>
                                 </div>
-                                <span class="small text-muted">{{ item.enrolled_at|date:"M d" }}</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <form method="post" action="{% url 'clear_student_attempts_class' classroom.id item.student.id %}" class="d-inline" onsubmit="return confirm('Erase all quiz attempts for student {{ item.student.username }} in {{ classroom.name }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm px-2 py-0" title="Erase All Quiz Attempts for this Student">
+                                            <i class="bi bi-eraser me-1"></i> Erase Quizzes
+                                        </button>
+                                    </form>
+                                </div>
                             </li>
                         {% endfor %}
                     </ul>
@@ -169,6 +176,7 @@
                                     <th class="py-2">Attempted</th>
                                     <th class="py-2">Score</th>
                                     <th class="py-2">Percentage</th>
+                                    <th class="py-2 text-end">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -197,6 +205,14 @@
                                         {% else %}
                                             <span class="badge bg-danger">{{ att.percentage }}%</span>
                                         {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <form method="post" action="{% url 'delete_quiz_attempt' att.id %}" class="d-inline" onsubmit="return confirm('Erase this quiz attempt by {{ att.student.username }} on {{ att.document.title }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Erase Quiz Attempt">
+                                                <i class="bi bi-trash me-1"></i> Erase
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                                 {% endfor %}

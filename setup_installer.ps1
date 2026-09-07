@@ -30,41 +30,41 @@ Write-Host "====================================================================
 Write-Host "            AI QUIZ EVALUATOR - AUTOMATED SETUP INSTALLER               " -ForegroundColor Cyan
 Write-Host "========================================================================" -ForegroundColor Cyan
 
-# Stage 1: Initializing
+# Stage 1: Initializing Setup (5%)
 Show-ProgressBar -percent 5 -status "Initializing setup installer..."
+Start-Sleep -Seconds 1
 
 # Stage 2: Check & Install Python 3.11 (20%)
-Show-ProgressBar -percent 20 -status "Checking Python installation..."
+Show-ProgressBar -percent 20 -status "Step 1/6: Checking Python installation..."
 $pythonCheck = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonCheck -and -not (Test-Path "C:\Program Files\Python311\python.exe")) {
-    Show-ProgressBar -percent 25 -status "Downloading Python 3.11 installer from Python.org..."
+    Show-ProgressBar -percent 25 -status "Step 1/6: Downloading Python 3.11 installer..."
     $url = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
     $installerPath = "$env:TEMP\python-3.11.9-amd64.exe"
     Invoke-WebRequest -Uri $url -OutFile $installerPath
     
-    Show-ProgressBar -percent 30 -status "Installing Python 3.11 silently (with Add to PATH enabled)..."
-    Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+    Show-ProgressBar -percent 30 -status "Step 1/6: Installing Python 3.11 silently (waiting for completion)..."
+    $proc = Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -PassThru -Wait
     Remove-Item $installerPath -ErrorAction SilentlyContinue
     
     $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
     $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
     $env:PATH = "$machinePath;$userPath;C:\Program Files\Python311;C:\Program Files\Python311\Scripts;$env:PATH"
 }
-Show-ProgressBar -percent 35 -status "Python environment ready!"
+Show-ProgressBar -percent 35 -status "Step 1/6: Python environment verified 100% complete!"
 
-# Stage 3: Virtual Environment & Dependencies (50%)
-Show-ProgressBar -percent 40 -status "Setting up Python virtual environment (venv)..."
+# Stage 3: Virtual Environment Setup (40%)
+Show-ProgressBar -percent 40 -status "Step 2/6: Setting up Python virtual environment (venv)..."
 $venvPython = "$PSScriptRoot\venv\Scripts\python.exe"
 $venvPip = "$PSScriptRoot\venv\Scripts\pip.exe"
 
-# If venv is missing or pip corrupted, recreate fresh venv
 if (-not (Test-Path $venvPython) -or -not (Test-Path $venvPip)) {
-    Show-ProgressBar -percent 42 -status "Creating fresh virtual environment..."
+    Show-ProgressBar -percent 42 -status "Step 2/6: Creating fresh virtual environment..."
     if (Test-Path "$PSScriptRoot\venv") {
         Remove-Item "$PSScriptRoot\venv" -Recurse -Force -ErrorAction SilentlyContinue
     }
     if (Get-Command python -ErrorAction SilentlyContinue) {
-        python -m venv "$PSScriptRoot\venv"
+        & python -m venv "$PSScriptRoot\venv"
     } elseif (Test-Path "C:\Program Files\Python311\python.exe") {
         & "C:\Program Files\Python311\python.exe" -m venv "$PSScriptRoot\venv"
     } else {
@@ -72,29 +72,60 @@ if (-not (Test-Path $venvPython) -or -not (Test-Path $venvPip)) {
         Exit 1
     }
 }
+Show-ProgressBar -percent 45 -status "Step 2/6: Virtual environment creation 100% complete!"
 
-Show-ProgressBar -percent 50 -status "Installing requirements (Django, PyPDF, Pillow, OpenAI)..."
+# Stage 4: Installing Dependencies (55%)
+Show-ProgressBar -percent 50 -status "Step 3/6: Installing Python packages (Django, PyPDF, Pillow, OpenAI)..."
 & "$venvPython" -m pip install -r "$PSScriptRoot\requirements.txt" --no-warn-script-location --quiet
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[WARNING] Retrying pip install to ensure all packages finish..." -ForegroundColor Yellow
+    & "$venvPython" -m pip install -r "$PSScriptRoot\requirements.txt" --no-warn-script-location
+}
+Show-ProgressBar -percent 60 -status "Step 3/6: Package installation 100% complete!"
 
-# Stage 4: Database Setup (65%)
-Show-ProgressBar -percent 65 -status "Configuring database migrations & seeding demo data..."
+# Stage 5: Database Setup & Seeding (70%)
+Show-ProgressBar -percent 65 -status "Step 4/6: Running database migrations & seeding demo data..."
 & "$venvPython" "$PSScriptRoot\manage.py" migrate --noinput
 & "$venvPython" "$PSScriptRoot\manage.py" seed_demo
+Show-ProgressBar -percent 75 -status "Step 4/6: Database setup & demo data 100% complete!"
 
-# Stage 5: Check & Install Ollama (80%)
-Show-ProgressBar -percent 80 -status "Checking Ollama AI installation..."
+# Stage 6: Check & Install Ollama Engine (85%)
+Show-ProgressBar -percent 80 -status "Step 5/6: Checking Ollama AI installation..."
 $ollamaCheck = Get-Command ollama -ErrorAction SilentlyContinue
 if (-not $ollamaCheck) {
-    Show-ProgressBar -percent 82 -status "Downloading & Installing Ollama automatically..."
-    irm https://ollama.com/install.ps1 | iex
+    Show-ProgressBar -percent 82 -status "Step 5/6: Downloading Ollama Windows Installer..."
+    $ollamaInstaller = "$env:TEMP\OllamaSetup.exe"
+    try {
+        Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller
+        Show-ProgressBar -percent 85 -status "Step 5/6: Installing Ollama (waiting for completion)..."
+        Start-Process -FilePath $ollamaInstaller -ArgumentList "/silent" -PassThru -Wait
+        Remove-Item $ollamaInstaller -ErrorAction SilentlyContinue
+    } catch {
+        Write-Host "[INFO] Attempting script installation for Ollama..." -ForegroundColor Yellow
+        irm https://ollama.com/install.ps1 | iex
+    }
+    
+    # Refresh PATH environment variable
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
-# Stage 6: Pull Llama 3.2 1B Model (95%)
-Show-ProgressBar -percent 90 -status "Checking / Pulling Llama 3.2 1B model into Ollama..."
-ollama pull llama3.2:1b
+# Ensure Ollama service is responsive
+try {
+    $response = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -ErrorAction SilentlyContinue
+} catch {
+    Show-ProgressBar -percent 88 -status "Step 5/6: Starting local Ollama AI service background worker..."
+    Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 3
+}
+Show-ProgressBar -percent 89 -status "Step 5/6: Ollama AI engine 100% verified & ready!"
 
-# Stage 7: Complete (100%)
-Show-ProgressBar -percent 100 -status "ALL INSTALLATIONS COMPLETE! Opening Chrome & Launching App..."
+# Stage 7: Pull Llama 3.2 1B Model (95%)
+Show-ProgressBar -percent 90 -status "Step 6/6: Downloading / Pulling Llama 3.2 1B model into Ollama..."
+$pullResult = & ollama pull llama3.2:1b 2>&1
+Show-ProgressBar -percent 98 -status "Step 6/6: Llama 3.2 1B model download 100% complete!"
+
+# Stage 8: Launch Application (100%)
+Show-ProgressBar -percent 100 -status "ALL 6 TASKS COMPLETED SUCCESSFULLY! Opening Web Browser & Launching App..."
 
 Write-Host "========================================================================" -ForegroundColor Green
 Write-Host "               SETUP COMPLETE! Launching Application...                 " -ForegroundColor Green

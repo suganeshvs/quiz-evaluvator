@@ -20,6 +20,9 @@ urlpatterns = [
     path('teacher/documents/', views.teacher_document_list, name='teacher_document_list'),
     path('teacher/students/', views.teacher_student_list, name='teacher_student_list'),
     path('teacher/reports/', views.teacher_reports, name='teacher_reports'),
+    path('teacher/student/<int:student_id>/clear-attempts/', views.clear_student_attempts, name='clear_student_attempts'),
+    path('teacher/class/<int:class_id>/student/<int:student_id>/clear-attempts/', views.clear_student_attempts_class, name='clear_student_attempts_class'),
+    path('teacher/attempt/<int:attempt_id>/delete/', views.delete_quiz_attempt, name='delete_quiz_attempt'),
 
     # Student URLs
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),

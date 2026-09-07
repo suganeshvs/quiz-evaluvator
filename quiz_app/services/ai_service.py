@@ -204,29 +204,107 @@ class AIService:
         return []
 
     @staticmethod
-    def _resolve_ollama_model(base_url, preferred_model):
+    def analyze_pdf_page(page_text, page_num):
         """
-        Queries /api/tags to find an active model in Ollama.
+        Analyzes a PDF page using local Ollama LLM (prioritizing llama3.2:1b)
+        to extract key educational topics, concise summary, and visual diagram analysis.
+        """
+        if not page_text or len(page_text.strip()) < 10:
+            return None
+
+        use_ollama = getattr(settings, 'USE_OLLAMA', True)
+        if not use_ollama:
+            return None
+
+        try:
+            base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434').rstrip('/')
+            preferred_model = getattr(settings, 'OLLAMA_MODEL', 'llama3.2:1b')
+            model = AIService._resolve_ollama_model(base_url, preferred_model)
+            if not model:
+                return None
+
+            url = f"{base_url}/api/chat"
+            system_prompt = (
+                "You are a document analyzer. Analyze the provided PDF page text.\n"
+                "Respond strictly in valid JSON format:\n"
+                '{"topics": ["Topic 1", "Topic 2", "Topic 3"], "summary": "...", "image_description": "..."}'
+            )
+
+            prompt_text = page_text[:2000]
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Analyze Page {page_num} text:\n\n{prompt_text}"}
+                ],
+                "format": "json",
+                "stream": False
+            }
+
+            data_bytes = json.dumps(payload).encode('utf-8')
+            req = urllib.request.Request(
+                url,
+                data=data_bytes,
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+
+            with urllib.request.urlopen(req, timeout=3) as response:
+                res_data = json.loads(response.read().decode('utf-8'))
+                content_str = res_data.get('message', {}).get('content', '')
+                if content_str:
+                    try:
+                        return json.loads(content_str)
+                    except Exception:
+                        pass
+        except Exception as e:
+            pass
+
+        return None
+
+    @staticmethod
+    def _resolve_ollama_model(base_url, preferred_model='llama3.2:1b'):
+        """
+        Queries /api/tags to find active models in Ollama.
+        Prioritizes 'llama3.2:1b' and any llama3.2 variants on any machine.
         """
         try:
             tags_url = f"{base_url}/api/tags"
             req = urllib.request.Request(tags_url)
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=1) as response:
                 data = json.loads(response.read().decode('utf-8'))
                 models = [m.get('name') for m in data.get('models', []) if m.get('name')]
                 if not models:
                     return None
-                
-                # Check for preferred model or model family match
+
+                # 1. Exact or partial match for llama3.2:1b
                 for m in models:
-                    if preferred_model in m or m.startswith(preferred_model.split(':')[0]):
+                    if 'llama3.2:1b' in m.lower():
                         return m
-                
-                # Return first available model if preferred model isn't downloaded yet
-                print(f"Ollama preferred model '{preferred_model}' not found. Using available model '{models[0]}'.")
+
+                # 2. Check for llama3.2 family (e.g., llama3.2:3b, llama3.2:latest)
+                for m in models:
+                    if 'llama3.2' in m.lower():
+                        return m
+
+                # 3. Check for preferred model string
+                for m in models:
+                    if preferred_model.lower() in m.lower() or m.lower().startswith(preferred_model.split(':')[0].lower()):
+                        return m
+
+                # 4. Fallback to first available model
                 return models[0]
         except Exception as e:
-            print(f"Could not fetch Ollama models list: {e}")
+            # Try running CLI 'ollama list' if API call failed
+            try:
+                import subprocess
+                res = subprocess.run(['ollama', 'list'], capture_output=True, text=True, timeout=1)
+                if res.returncode == 0:
+                    output = res.stdout.lower()
+                    if 'llama3.2:1b' in output or 'llama3.2' in output:
+                        return 'llama3.2:1b'
+            except Exception:
+                pass
             return preferred_model
 
     @staticmethod

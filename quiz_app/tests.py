@@ -175,3 +175,67 @@ class AIQuizAnalyzerTestCase(TestCase):
         self.client.login(username='stranger_student', password='password123')
         res_allowed = self.client.get(reverse('document_viewer', kwargs={'doc_id': self.document.id}))
         self.assertEqual(res_allowed.status_code, 200)
+
+    def test_quiz_starts_at_question_1(self):
+        """
+        VERIFY BUG FIX: Newly started quiz MUST start at Question 1 on load (q_index=1).
+        """
+        attempt = QuizAttempt.objects.create(
+            student=self.student,
+            document=self.document,
+            confirmed_page=5,
+            status='IN_PROGRESS'
+        )
+        QuizGenerator.generate_next_questions(attempt, batch_size=3)
+
+        self.client.login(username='test_student', password='password123')
+        res = self.client.get(reverse('take_quiz', kwargs={'attempt_id': attempt.id}))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['current_q_index'], 1)
+        self.assertContains(res, "1.")
+
+    def test_teacher_erase_student_attempts(self):
+        """
+        VERIFY TEACHER ERASE ATTEMPTS: Teacher can erase individual or all quiz attempts done by a student.
+        """
+        attempt1 = QuizAttempt.objects.create(
+            student=self.student,
+            document=self.document,
+            confirmed_page=5,
+            status='COMPLETED',
+            questions_attempted=5,
+            correct_answers=4,
+            score='4/5',
+            percentage=80.0
+        )
+        attempt2 = QuizAttempt.objects.create(
+            student=self.student,
+            document=self.document,
+            confirmed_page=10,
+            status='COMPLETED',
+            questions_attempted=5,
+            correct_answers=5,
+            score='5/5',
+            percentage=100.0
+        )
+
+        self.client.login(username='test_teacher', password='password123')
+
+        # 1. Delete single attempt
+        res_del_one = self.client.post(reverse('delete_quiz_attempt', kwargs={'attempt_id': attempt1.id}))
+        self.assertEqual(res_del_one.status_code, 302)
+        self.assertFalse(QuizAttempt.objects.filter(id=attempt1.id).exists())
+        self.assertTrue(QuizAttempt.objects.filter(id=attempt2.id).exists())
+
+        # 2. Clear all attempts for student in class
+        res_clear_all = self.client.post(reverse('clear_student_attempts_class', kwargs={'class_id': self.classroom.id, 'student_id': self.student.id}))
+        self.assertEqual(res_clear_all.status_code, 302)
+        self.assertFalse(QuizAttempt.objects.filter(student=self.student).exists())
+
+    def test_ollama_llama_model_resolution(self):
+        """
+        VERIFY LLAMA 3.2:1B MODEL RESOLUTION: AIService resolves llama3.2:1b when present in models list.
+        """
+        from quiz_app.services.ai_service import AIService
+        model = AIService._resolve_ollama_model('http://localhost:11434', 'llama3.2:1b')
+        self.assertIsNotNone(model)

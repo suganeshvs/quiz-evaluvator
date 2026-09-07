@@ -428,6 +428,7 @@ def take_quiz(request, attempt_id):
     """
     Interactive Quiz Interface.
     Displays questions dynamically, allowing endless questions or END QUIZ.
+    Always starts at Question 1 when a quiz is first opened.
     """
     attempt = get_object_or_404(QuizAttempt, id=attempt_id, student=request.user)
 
@@ -436,19 +437,25 @@ def take_quiz(request, attempt_id):
 
     questions = attempt.questions.all().order_by('id')
 
-    # Index of current question
-    q_index = request.GET.get('q', len(questions))
-    try:
-        q_index = int(q_index)
-    except ValueError:
+    # Index of current question - defaults strictly to 1 for fresh quizzes
+    q_param = request.GET.get('q')
+    if q_param:
+        try:
+            q_index = int(q_param)
+        except ValueError:
+            q_index = 1
+    else:
         q_index = 1
 
     # Generate more questions dynamically if student reached the end of current list
-    if q_index > len(questions):
+    if q_index > len(questions) and len(questions) > 0:
         new_q = QuizGenerator.generate_next_questions(attempt, batch_size=2)
         questions = attempt.questions.all().order_by('id')
 
-    current_q = questions[q_index - 1] if (0 < q_index <= len(questions)) else questions.last()
+    if q_index < 1:
+        q_index = 1
+
+    current_q = questions[q_index - 1] if (0 < q_index <= len(questions)) else (questions.first() if questions.exists() else None)
 
     context = {
         'attempt': attempt,
@@ -538,3 +545,89 @@ def quiz_history(request):
     ).select_related('document').order_by('-completed_at')
 
     return render(request, 'student/quiz_history.html', {'attempts': attempts})
+
+
+# ==========================================
+# TEACHER ERASE QUIZ ATTEMPTS VIEWS
+# ==========================================
+
+@login_required
+def clear_student_attempts(request, student_id):
+    """
+    Teacher action to erase ALL quiz attempts done by a specific student
+    across all classes taught by this teacher.
+    """
+    if not request.user.is_teacher:
+        return redirect('student_dashboard')
+
+    student = get_object_or_404(User, id=student_id, role='STUDENT')
+
+    if request.method == 'POST':
+        attempts = QuizAttempt.objects.filter(
+            student=student,
+            document__classroom__teacher=request.user
+        )
+        count = attempts.count()
+        attempts.delete()
+        messages.success(request, f"Successfully erased all {count} quiz attempt(s) for student '{student.username}'.")
+        next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'teacher_reports'
+        return redirect(next_url)
+
+    return render(request, 'teacher/delete_confirm.html', {
+        'object_type': 'Student Quiz Attempts',
+        'object_name': f"All Quiz Attempts for {student.username}",
+        'cancel_url': 'teacher_reports'
+    })
+
+
+@login_required
+def clear_student_attempts_class(request, class_id, student_id):
+    """
+    Teacher action to erase ALL quiz attempts done by a student within a specific class.
+    """
+    if not request.user.is_teacher:
+        return redirect('student_dashboard')
+
+    classroom = get_object_or_404(ClassRoom, id=class_id, teacher=request.user)
+    student = get_object_or_404(User, id=student_id, role='STUDENT')
+
+    if request.method == 'POST':
+        attempts = QuizAttempt.objects.filter(
+            student=student,
+            document__classroom=classroom
+        )
+        count = attempts.count()
+        attempts.delete()
+        messages.success(request, f"Successfully erased {count} quiz attempt(s) for student '{student.username}' in class '{classroom.name}'.")
+        return redirect('class_detail', class_id=classroom.id)
+
+    return render(request, 'teacher/delete_confirm.html', {
+        'object_type': 'Class Student Quiz Attempts',
+        'object_name': f"Quiz Attempts for {student.username} in {classroom.name}",
+        'cancel_url': 'class_detail'
+    })
+
+
+@login_required
+def delete_quiz_attempt(request, attempt_id):
+    """
+    Teacher action to erase a single specific quiz attempt.
+    """
+    if not request.user.is_teacher:
+        return redirect('student_dashboard')
+
+    attempt = get_object_or_404(QuizAttempt, id=attempt_id, document__classroom__teacher=request.user)
+
+    if request.method == 'POST':
+        student_name = attempt.student.username
+        doc_title = attempt.document.title
+        attempt.delete()
+        messages.success(request, f"Successfully erased quiz attempt on '{doc_title}' by student '{student_name}'.")
+        next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'teacher_reports'
+        return redirect(next_url)
+
+    return render(request, 'teacher/delete_confirm.html', {
+        'object_type': 'Quiz Attempt',
+        'object_name': f"Attempt by {attempt.student.username} on {attempt.document.title}",
+        'cancel_url': 'teacher_reports'
+    })

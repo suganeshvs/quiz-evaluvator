@@ -2,6 +2,7 @@ import os
 import re
 from pypdf import PdfReader
 from pptx import Presentation
+from quiz_app.services.ai_service import AIService
 
 class DocumentAnalyzer:
     """
@@ -76,6 +77,17 @@ class DocumentAnalyzer:
                 image_desc = f"Educational diagram referenced on Page {page_num}."
 
             paragraphs_data, content_qty, topics = DocumentAnalyzer._structure_text(text, page_num, has_image)
+
+            # Integrate AI analysis (llama3.2:1b auto-detected) if available
+            try:
+                ai_result = AIService.analyze_pdf_page(text, page_num)
+                if ai_result and isinstance(ai_result, dict):
+                    if ai_result.get('topics') and isinstance(ai_result['topics'], list):
+                        topics = ai_result['topics']
+                    if ai_result.get('image_description') and has_image:
+                        image_desc = ai_result['image_description']
+            except Exception as e:
+                print(f"AI page analysis skipped for page {page_num}: {e}")
 
             pages_data.append({
                 'page_number': page_num,

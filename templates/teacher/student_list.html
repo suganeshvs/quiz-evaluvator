@@ -18,7 +18,8 @@
                         <th class="py-3">Email</th>
                         <th class="py-3">Enrolled Class</th>
                         <th class="py-3">Subject</th>
-                        <th class="pe-4 py-3 text-end">Enrollment Date</th>
+                        <th class="py-3">Enrollment Date</th>
+                        <th class="pe-4 py-3 text-end">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -30,11 +31,19 @@
                         <td class="text-muted">{{ item.student.email|default:"student@classroom.edu" }}</td>
                         <td><span class="badge bg-indigo-subtle text-indigo fw-semibold" style="background:#e0e7ff; color:#4f46e5;">{{ item.classroom.name }}</span></td>
                         <td class="text-secondary">{{ item.classroom.subject }}</td>
-                        <td class="pe-4 text-end text-muted small">{{ item.enrolled_at|date:"M d, Y" }}</td>
+                        <td class="text-muted small">{{ item.enrolled_at|date:"M d, Y" }}</td>
+                        <td class="pe-4 text-end">
+                            <form method="post" action="{% url 'clear_student_attempts_class' item.classroom.id item.student.id %}" class="d-inline" onsubmit="return confirm('Erase all quiz attempts for student {{ item.student.username }} in class {{ item.classroom.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Erase All Quiz Attempts for this Student">
+                                    <i class="bi bi-eraser me-1"></i> Erase Quiz Attempts
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">No students enrolled yet.</td>
+                        <td colspan="6" class="text-center py-5 text-muted">No students enrolled yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

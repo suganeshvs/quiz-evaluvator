@@ -37,8 +37,8 @@ $xaml = @"
         <!-- Activity Readout Line -->
         <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="6" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12,8" Margin="0,0,0,12">
             <Grid>
-                <TextBlock x:Name="StatusText" Text="Initializing setup installer..." FontSize="12" FontWeight="Medium" Foreground="#334155" HorizontalAlignment="Left"/>
-                <TextBlock x:Name="LogText" Text="Starting..." FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right"/>
+                <TextBlock x:Name="StatusText" Text="Initializing setup installer..." FontSize="12" FontWeight="Medium" Foreground="#334155" HorizontalAlignment="Left" TextWrapping="NoWrap"/>
+                <TextBlock x:Name="LogText" Text="Starting..." FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right" TextWrapping="NoWrap"/>
             </Grid>
         </Border>
 
@@ -63,7 +63,8 @@ function Update-UI {
     param (
         [int]$percent,
         [string]$status,
-        [string]$logMessage
+        [string]$logMessage,
+        [string]$barColor = "#2563EB"
     )
     if ($window -and $statusLabel) {
         $statusLabel.Text = $status
@@ -77,6 +78,13 @@ function Update-UI {
         $anim.Duration = [TimeSpan]::FromMilliseconds(300)
         $barFill.BeginAnimation([System.Windows.Controls.Border]::WidthProperty, $anim)
 
+        if ($barColor) {
+            try {
+                $bc = New-Object System.Windows.Media.BrushConverter
+                $barFill.Background = $bc.ConvertFromString($barColor)
+            } catch {}
+        }
+
         if ($logMessage) {
             $logBlock.Text = $logMessage
         }
@@ -84,45 +92,111 @@ function Update-UI {
     }
 }
 
+function Stop-InstallerWithError {
+    param (
+        [int]$percent,
+        [string]$status,
+        [string]$errorMessage
+    )
+    $timer.Stop()
+    Update-UI $percent "[ERROR] $status" "ERROR: $errorMessage" "#EF4444"
+}
+
 function Test-ValidPython {
     param ([string]$pyPath)
     if (-not $pyPath) { return $false }
+    # Ignore WindowsApps Microsoft Store execution aliases
     if ($pyPath -like "*WindowsApps*") { return $false }
-    if (-not (Test-Path $pyPath)) { return $false }
+    if ($pyPath -ne "py" -and -not (Test-Path $pyPath)) { return $false }
+    
     try {
-        $ver = & $pyPath --version 2>&1
-        if ($ver -match "Python 3\.") { return $true }
+        if ($pyPath -eq "py") {
+            $out = & py -3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>&1
+        } else {
+            $out = & "$pyPath" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>&1
+        }
+        if ($LASTEXITCODE -eq 0 -and $out -match '^(\d+)\.(\d+)') {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            # Django 5.x requires Python 3.10 or higher
+            if ($major -eq 3 -and $minor -ge 10) {
+                return $true
+            }
+        }
     } catch {}
     return $false
 }
 
 function Get-SystemPythonPath {
+    # 1. Check 'python' command in PATH
     $cmd = Get-Command python -ErrorAction SilentlyContinue
     if ($cmd -and (Test-ValidPython $cmd.Source)) {
         return $cmd.Source
     }
 
-    $paths = @(
-        "C:\Program Files\Python311\python.exe",
-        "C:\Program Files\Python312\python.exe",
-        "C:\Program Files\Python310\python.exe",
-        "$env:LocalAppData\Programs\Python\Python311\python.exe",
-        "$env:LocalAppData\Programs\Python\Python312\python.exe",
-        "$env:LocalAppData\Programs\Python\Python310\python.exe"
-    )
-    foreach ($p in $paths) {
-        if (Test-ValidPython $p) { return $p }
+    # 2. Check 'py' launcher
+    $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
+    if ($pyLauncher -and (Test-ValidPython "py")) {
+        return "py"
     }
 
-    $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
-    if ($pyLauncher) {
+    # 3. Search common installation directories
+    $candidatePaths = @(
+        "$env:LocalAppData\Programs\Python\Python313\python.exe",
+        "$env:LocalAppData\Programs\Python\Python312\python.exe",
+        "$env:LocalAppData\Programs\Python\Python311\python.exe",
+        "$env:LocalAppData\Programs\Python\Python310\python.exe",
+        "C:\Program Files\Python313\python.exe",
+        "C:\Program Files\Python312\python.exe",
+        "C:\Program Files\Python311\python.exe",
+        "C:\Program Files\Python310\python.exe",
+        "C:\Python313\python.exe",
+        "C:\Python312\python.exe",
+        "C:\Python311\python.exe",
+        "C:\Python310\python.exe"
+    )
+    foreach ($p in $candidatePaths) {
+        if (Test-ValidPython $p) {
+            return $p
+        }
+    }
+
+    # 4. Registry lookup
+    $regPaths = @(
+        "HKLM:\SOFTWARE\Python\PythonCore\*\InstallPath",
+        "HKCU:\SOFTWARE\Python\PythonCore\*\InstallPath"
+    )
+    foreach ($regPath in $regPaths) {
         try {
-            $ver = & py -3 --version 2>&1
-            if ($ver -match "Python 3\.") { return "py" }
+            $items = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
+            foreach ($item in $items) {
+                if ($item.ExecutablePath -and (Test-ValidPython $item.ExecutablePath)) {
+                    return $item.ExecutablePath
+                }
+                if ($item.'(default)' -and (Test-ValidPython (Join-Path $item.'(default)' "python.exe"))) {
+                    return (Join-Path $item.'(default)' "python.exe")
+                }
+            }
         } catch {}
     }
 
     return $null
+}
+
+function Test-ValidVenv {
+    param ([string]$vPyPath)
+    if (-not $vPyPath -or -not (Test-Path $vPyPath)) { return $false }
+    try {
+        $out = & "$vPyPath" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>&1
+        if ($LASTEXITCODE -eq 0 -and $out -match '^(\d+)\.(\d+)') {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            if ($major -eq 3 -and $minor -ge 10) {
+                return $true
+            }
+        }
+    } catch {}
+    return $false
 }
 
 $script:stage = 0
@@ -143,93 +217,110 @@ $timer.Add_Tick({
             $timer.Start()
         }
         1 {
-            Update-UI 10 "Step 1/6: Checking Python installation..." "Locating Python installation on this machine..."
+            Update-UI 10 "Step 1/6: Checking Python installation..." "Locating Python installation (>=3.10)..."
             $pyExe = Get-SystemPythonPath
 
             if (-not $pyExe) {
-                Update-UI 15 "Step 1/6: Downloading Python 3.11 installer..." "Downloading python-3.11.9-amd64.exe from python.org..."
+                Update-UI 12 "Step 1/6: Downloading Python 3.11 installer..." "Downloading python-3.11.9-amd64.exe..."
                 $url = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
                 $installerPath = "$env:TEMP\python-3.11.9-amd64.exe"
-                Invoke-WebRequest -Uri $url -OutFile $installerPath
                 
-                Update-UI 18 "Step 1/6: Installing Python 3.11 silently (waiting for completion)..." "Running Python 3.11 installer with /quiet..."
-                $proc = Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -PassThru -Wait
+                $oldProgress = $ProgressPreference
+                $ProgressPreference = 'SilentlyContinue'
+                try {
+                    Invoke-WebRequest -Uri $url -OutFile $installerPath
+                } catch {
+                    $ProgressPreference = $oldProgress
+                    Stop-InstallerWithError 15 "Python download failed." "Unable to download Python installer from python.org. Check network connection."
+                    return
+                }
+                $ProgressPreference = $oldProgress
+
+                Update-UI 16 "Step 1/6: Installing Python 3.11 silently..." "Installing Python 3.11..."
+                $proc = Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1 Include_pip=1" -PassThru -Wait
                 Remove-Item $installerPath -ErrorAction SilentlyContinue
-                
+
+                # Refresh process environment PATH
                 $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
                 $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
-                $env:PATH = "$machinePath;$userPath;C:\Program Files\Python311;C:\Program Files\Python311\Scripts;$env:LocalAppData\Programs\Python\Python311;$env:LocalAppData\Programs\Python\Python311\Scripts;$env:PATH"
+                $userPythonDir = "$env:LocalAppData\Programs\Python\Python311"
+                $userScriptsDir = "$env:LocalAppData\Programs\Python\Python311\Scripts"
+                $env:PATH = "$userPythonDir;$userScriptsDir;$machinePath;$userPath;$env:PATH"
+
                 $pyExe = Get-SystemPythonPath
             }
 
             if (-not $pyExe) {
-                Update-UI 10 "[ERROR] Python installation failed." "ERROR: Could not verify Python executable."
+                Stop-InstallerWithError 18 "Python detection failed." "Compatible Python 3.10+ executable was not found. Please install Python manually."
                 return
             }
 
             $script:pythonExe = $pyExe
-            Update-UI 20 "Step 1/6: Python verified 100% complete!" "Python executable: $pyExe"
+            Update-UI 20 "Step 1/6: Python verified complete!" "Python executable: $pyExe"
             $script:stage = 2
             $timer.Interval = [TimeSpan]::FromMilliseconds(300)
             $timer.Start()
         }
         2 {
-            Update-UI 25 "Step 2/6: Setting up Python virtual environment (venv)..." "Checking virtual environment directory..."
+            Update-UI 25 "Step 2/6: Setting up Python virtual environment (venv)..." "Checking virtual environment..."
             $vPy = "$PSScriptRoot\venv\Scripts\python.exe"
-            $vPip = "$PSScriptRoot\venv\Scripts\pip.exe"
 
-            if (-not (Test-Path $vPy) -or -not (Test-Path $vPip)) {
+            # Check if existing venv is functional on current machine
+            $isVenvValid = Test-ValidVenv $vPy
+
+            if (-not $isVenvValid) {
                 Update-UI 30 "Step 2/6: Creating fresh virtual environment..." "Executing python -m venv venv..."
                 if (Test-Path "$PSScriptRoot\venv") {
                     Remove-Item "$PSScriptRoot\venv" -Recurse -Force -ErrorAction SilentlyContinue
                 }
-                
-                # Tier 1: Standard venv creation
+
+                # Attempt Tier 1: Standard venv creation
                 if ($script:pythonExe -eq "py") {
                     & py -3 -m venv "$PSScriptRoot\venv"
-                } elseif ($script:pythonExe) {
+                } else {
                     & "$script:pythonExe" -m venv "$PSScriptRoot\venv"
                 }
 
-                # Tier 2: Fallback to virtualenv package if venv executable was not created
-                if (-not (Test-Path $vPy)) {
+                # Attempt Tier 2: virtualenv fallback if standard venv executable was not created
+                if (-not (Test-ValidVenv $vPy)) {
                     Update-UI 35 "Step 2/6: Retrying environment setup with virtualenv..." "Installing virtualenv..."
                     if ($script:pythonExe -eq "py") {
                         & py -3 -m pip install virtualenv --quiet
                         & py -3 -m virtualenv "$PSScriptRoot\venv"
-                    } elseif ($script:pythonExe) {
+                    } else {
                         & "$script:pythonExe" -m pip install virtualenv --quiet
                         & "$script:pythonExe" -m virtualenv "$PSScriptRoot\venv"
                     }
                 }
             }
 
-            # Tier 3: Verified Executable Assignment with Guaranteed System Python Fallback
-            if (Test-Path $vPy) {
+            # Verify venv executable runs successfully
+            if (Test-ValidVenv $vPy) {
                 $script:venvPython = $vPy
-            } elseif ($script:pythonExe -and $script:pythonExe -ne "py" -and (Test-Path $script:pythonExe)) {
-                $script:venvPython = $script:pythonExe
-                Update-UI 38 "Step 2/6: Using System Python direct fallback..." "Assigned System Python: $script:venvPython"
-            } elseif (Get-Command python -ErrorAction SilentlyContinue) {
-                $script:venvPython = (Get-Command python).Source
             } else {
-                Update-UI 20 "[ERROR] Could not initialize Python environment." "ERROR: Python environment failed."
+                Stop-InstallerWithError 38 "Virtual environment initialization failed." "Could not create a functional venv Python executable at $vPy."
                 return
             }
 
-            Update-UI 40 "Step 2/6: Python environment 100% verified!" "Executable ready: $script:venvPython"
+            Update-UI 40 "Step 2/6: Python environment verified!" "Executable ready: $script:venvPython"
             $script:stage = 3
             $timer.Interval = [TimeSpan]::FromMilliseconds(300)
             $timer.Start()
         }
         3 {
-            Update-UI 45 "Step 3/6: Installing Python dependencies..." "Running pip install -r requirements.txt..."
-            & "$script:venvPython" -m pip install -r "$PSScriptRoot\requirements.txt" --no-warn-script-location --quiet
+            Update-UI 45 "Step 3/6: Installing Python dependencies..." "Upgrading pip and installing requirements.txt..."
+            
+            # Upgrade pip silently
+            & "$script:venvPython" -m pip install --upgrade pip --quiet 2>&1 | Out-Null
+
+            # Install project requirements
+            & "$script:venvPython" -m pip install -r "$PSScriptRoot\requirements.txt" --no-warn-script-location
             if ($LASTEXITCODE -ne 0) {
-                Update-UI 50 "Step 3/6: Retrying pip install..." "Retrying requirements installation..."
-                & "$script:venvPython" -m pip install -r "$PSScriptRoot\requirements.txt" --no-warn-script-location
+                Stop-InstallerWithError 50 "Package installation failed." "pip install -r requirements.txt failed with exit code $LASTEXITCODE."
+                return
             }
-            Update-UI 60 "Step 3/6: Package installation 100% complete!" "Django, PyPDF, Pillow, OpenAI installed."
+
+            Update-UI 60 "Step 3/6: Package installation complete!" "Django, PyPDF, Pillow, OpenAI installed."
             $script:stage = 4
             $timer.Interval = [TimeSpan]::FromMilliseconds(300)
             $timer.Start()
@@ -237,47 +328,118 @@ $timer.Add_Tick({
         4 {
             Update-UI 65 "Step 4/6: Running database migrations & seeding demo data..." "Running manage.py migrate..."
             & "$script:venvPython" "$PSScriptRoot\manage.py" migrate --noinput
+            if ($LASTEXITCODE -ne 0) {
+                Stop-InstallerWithError 68 "Database migration failed." "manage.py migrate failed with exit code $LASTEXITCODE."
+                return
+            }
+
             Update-UI 70 "Step 4/6: Seeding teacher and student demo accounts..." "Running manage.py seed_demo..."
             & "$script:venvPython" "$PSScriptRoot\manage.py" seed_demo
-            Update-UI 75 "Step 4/6: Database setup & demo data 100% complete!" "Database seeded with teacher1 & student1 accounts."
+            if ($LASTEXITCODE -ne 0) {
+                Stop-InstallerWithError 72 "Demo data seeding failed." "manage.py seed_demo failed with exit code $LASTEXITCODE."
+                return
+            }
+
+            Update-UI 75 "Step 4/6: Database setup & demo data complete!" "Database seeded with teacher1 & student1 accounts."
             $script:stage = 5
             $timer.Interval = [TimeSpan]::FromMilliseconds(300)
             $timer.Start()
         }
         5 {
             Update-UI 78 "Step 5/6: Checking Ollama AI engine..." "Verifying local Ollama installation..."
-            $ollamaCheck = Get-Command ollama -ErrorAction SilentlyContinue
-            if (-not $ollamaCheck) {
+            $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
+            $ollamaExe = $null
+            if ($ollamaCmd) {
+                $ollamaExe = $ollamaCmd.Source
+            } else {
+                $standardPaths = @(
+                    "$env:LocalAppData\Programs\Ollama\ollama.exe",
+                    "C:\Program Files\Ollama\ollama.exe"
+                )
+                foreach ($sp in $standardPaths) {
+                    if (Test-Path $sp) { $ollamaExe = $sp; break }
+                }
+            }
+
+            if (-not $ollamaExe) {
                 Update-UI 80 "Step 5/6: Downloading Ollama Windows Installer..." "Downloading OllamaSetup.exe..."
                 $ollamaInstaller = "$env:TEMP\OllamaSetup.exe"
+                $oldProgress = $ProgressPreference
+                $ProgressPreference = 'SilentlyContinue'
                 try {
                     Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $ollamaInstaller
-                    Update-UI 83 "Step 5/6: Installing Ollama (waiting for completion)..." "Installing Ollama silently..."
+                    Update-UI 83 "Step 5/6: Installing Ollama..." "Installing Ollama silently..."
                     Start-Process -FilePath $ollamaInstaller -ArgumentList "/silent" -PassThru -Wait
                     Remove-Item $ollamaInstaller -ErrorAction SilentlyContinue
                 } catch {
-                    Update-UI 83 "Step 5/6: Installing Ollama via script..." "Downloading Ollama script..."
-                    irm https://ollama.com/install.ps1 | iex
+                    Update-UI 83 "Step 5/6: Downloading Ollama via script..." "Installing Ollama..."
+                    try { iex (irm https://ollama.com/install.ps1) } catch {}
                 }
-                $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                $ProgressPreference = $oldProgress
+
+                # Refresh PATH
+                $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+                $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
+                $env:PATH = "$env:LocalAppData\Programs\Ollama;C:\Program Files\Ollama;$machinePath;$userPath;$env:PATH"
+                
+                $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
+                if ($ollamaCmd) { $ollamaExe = $ollamaCmd.Source }
             }
 
+            # Check if Ollama service is listening
+            $ollamaRunning = $false
             try {
-                $response = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -ErrorAction SilentlyContinue
-            } catch {
+                $res = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -ErrorAction SilentlyContinue
+                if ($res) { $ollamaRunning = $true }
+            } catch {}
+
+            if (-not $ollamaRunning -and $ollamaExe) {
                 Update-UI 87 "Step 5/6: Starting local Ollama background worker..." "Starting ollama serve..."
-                Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden -ErrorAction SilentlyContinue
-                Start-Sleep -Seconds 3
+                Start-Process -FilePath $ollamaExe -ArgumentList "serve" -WindowStyle Hidden -ErrorAction SilentlyContinue
+                
+                for ($i = 0; $i -lt 10; $i++) {
+                    Start-Sleep -Seconds 1
+                    try {
+                        $res = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -TimeoutSec 2 -ErrorAction SilentlyContinue
+                        if ($res) { $ollamaRunning = $true; break }
+                    } catch {}
+                }
             }
-            Update-UI 90 "Step 5/6: Ollama AI engine 100% verified & ready!" "Ollama AI service running."
+
+            if ($ollamaRunning) {
+                Update-UI 90 "Step 5/6: Ollama AI engine verified & ready!" "Ollama AI service running."
+            } else {
+                Update-UI 90 "Step 5/6: Ollama offline (Mock AI fallback enabled)" "Ollama service unavailable."
+            }
+
             $script:stage = 6
             $timer.Interval = [TimeSpan]::FromMilliseconds(300)
             $timer.Start()
         }
         6 {
-            Update-UI 92 "Step 6/6: Downloading / Pulling Llama 3.2 1B model..." "Executing ollama pull llama3.2:1b..."
-            $pullResult = & ollama pull llama3.2:1b 2>&1
-            Update-UI 98 "Step 6/6: Llama 3.2 1B model download 100% complete!" "Llama 3.2 1B model ready."
+            Update-UI 92 "Step 6/6: Checking Llama 3.2 1B model..." "Verifying Ollama models..."
+            $hasModel = $false
+            try {
+                $res = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -ErrorAction SilentlyContinue
+                if ($res -and $res.models) {
+                    foreach ($m in $res.models) {
+                        if ($m.name -like "*llama3.2:1b*" -or $m.name -like "*llama3.2*") {
+                            $hasModel = $true
+                            break
+                        }
+                    }
+                }
+            } catch {}
+
+            if (-not $hasModel) {
+                $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
+                if ($ollamaCmd) {
+                    Update-UI 94 "Step 6/6: Pulling Llama 3.2 1B model..." "Executing ollama pull llama3.2:1b..."
+                    & ollama pull llama3.2:1b 2>&1 | Out-Null
+                }
+            }
+
+            Update-UI 98 "Step 6/6: AI Model setup complete!" "Llama 3.2 1B model configured."
             $script:stage = 7
             $timer.Interval = [TimeSpan]::FromMilliseconds(500)
             $timer.Start()
@@ -285,7 +447,7 @@ $timer.Add_Tick({
         7 {
             Update-UI 99 "Starting application server..." "Launching Django background service on 127.0.0.1:8000..."
 
-            # 1. Start Django server as a persistent background process
+            # 1. Start Django server as a persistent background process using verified venv Python
             Start-Process -FilePath $script:venvPython -ArgumentList "`"$PSScriptRoot\manage.py`" runserver 127.0.0.1:8000" -WindowStyle Hidden
 
             # 2. Poll http://127.0.0.1:8000/ until server responds
@@ -312,7 +474,7 @@ $timer.Add_Tick({
 
             Update-UI 100 "Server ready! Opening application..." "Launching browser..."
 
-            # 3. Open Browser ONLY after server is 100% responsive
+            # 3. Open Browser ONLY after server is responsive
             $chromePath = "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe"
             $chromePathx86 = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
 

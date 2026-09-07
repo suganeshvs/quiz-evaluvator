@@ -61,7 +61,11 @@ def teacher_dashboard(request):
 
     classes = ClassRoom.objects.filter(teacher=request.user)
     documents = Document.objects.filter(classroom__teacher=request.user)
-    recent_attempts = QuizAttempt.objects.filter(document__classroom__teacher=request.user)[:5]
+    recent_attempts = QuizAttempt.objects.filter(
+        document__classroom__teacher=request.user,
+        student__role='STUDENT',
+        status='COMPLETED'
+    ).select_related('student', 'document').order_by('-completed_at')[:5]
     total_students = Enrollment.objects.filter(classroom__teacher=request.user).values('student').distinct().count()
 
     context = {
@@ -152,9 +156,10 @@ def class_detail(request, class_id):
     documents = classroom.documents.all().order_by('-upload_date')
     enrollments = classroom.enrollments.select_related('student').order_by('enrolled_at')
 
-    # Fetch all completed student quiz attempts for this specific class
+    # Fetch all completed student quiz attempts for this specific class (students only)
     quiz_attempts = QuizAttempt.objects.filter(
         document__classroom=classroom,
+        student__role='STUDENT',
         status='COMPLETED'
     ).select_related('student', 'document').order_by('-completed_at')
 
@@ -260,6 +265,7 @@ def teacher_reports(request):
 
     attempts = QuizAttempt.objects.filter(
         document__classroom__teacher=request.user,
+        student__role='STUDENT',
         status='COMPLETED'
     ).select_related('student', 'document').order_by('-completed_at')
 
@@ -309,6 +315,10 @@ def document_viewer(request, doc_id):
         if not is_enrolled:
             messages.error(request, f"Access Denied: You are not enrolled in class '{doc.classroom.name}'.")
             return redirect('student_dashboard')
+    elif request.user.is_teacher:
+        if doc.classroom.teacher != request.user:
+            messages.error(request, f"Access Denied: You do not manage class '{doc.classroom.name}'.")
+            return redirect('teacher_dashboard')
 
     pages = doc.pages.all().order_by('page_number')
 
@@ -317,22 +327,24 @@ def document_viewer(request, doc_id):
         DocumentAnalyzer.process_document(doc)
         pages = doc.pages.all().order_by('page_number')
 
-    # Get or create reading progress
-    progress, _ = ReadingProgress.objects.get_or_create(
-        student=request.user,
-        document=doc,
-        defaults={'highest_page': 1}
-    )
+    progress = None
+    if request.user.is_student:
+        progress, _ = ReadingProgress.objects.get_or_create(
+            student=request.user,
+            document=doc,
+            defaults={'highest_page': 1}
+        )
 
-    page_num = request.GET.get('page', progress.highest_page)
+    default_page = progress.highest_page if progress else 1
+    page_num = request.GET.get('page', default_page)
     try:
         page_num = int(page_num)
         page_num = max(1, min(page_num, doc.total_pages or 1))
     except ValueError:
         page_num = 1
 
-    # Auto-update highest page reached
-    if page_num > progress.highest_page:
+    # Auto-update highest page reached for students
+    if progress and page_num > progress.highest_page:
         progress.highest_page = page_num
         progress.save()
 
@@ -383,7 +395,12 @@ def confirm_progress(request, doc_id):
     """
     Reading Progress Confirmation view shown when student clicks QUICK QUIZ.
     Prompts student to verify or adjust Page / Paragraph / Line boundary.
+    Restricted strictly to Students.
     """
+    if request.user.is_teacher:
+        messages.info(request, "Quiz taking is restricted to students. Teachers monitor student quiz performance from reports.")
+        return redirect('teacher_reports')
+
     doc = get_object_or_404(Document, id=doc_id)
     progress = ReadingProgress.objects.filter(student=request.user, document=doc).first()
     detected_page = progress.highest_page if progress else 1
@@ -429,7 +446,12 @@ def take_quiz(request, attempt_id):
     Interactive Quiz Interface.
     Displays questions dynamically, allowing endless questions or END QUIZ.
     Always starts at Question 1 when a quiz is first opened.
+    Restricted strictly to Students.
     """
+    if request.user.is_teacher:
+        messages.info(request, "Quiz taking is restricted to students. Teachers monitor student quiz performance from reports.")
+        return redirect('teacher_reports')
+
     attempt = get_object_or_404(QuizAttempt, id=attempt_id, student=request.user)
 
     if attempt.status == 'COMPLETED':
@@ -471,7 +493,11 @@ def take_quiz(request, attempt_id):
 def submit_answer(request, question_id):
     """
     AJAX Endpoint to save student answer for a specific question.
+    Restricted strictly to Students.
     """
+    if request.user.is_teacher:
+        return JsonResponse({'status': 'error', 'message': 'Quiz taking is restricted to students.'}, status=403)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -500,7 +526,11 @@ def submit_answer(request, question_id):
 def fetch_more_questions(request, attempt_id):
     """
     AJAX Endpoint to fetch/generate additional questions for unlimited quiz.
+    Restricted strictly to Students.
     """
+    if request.user.is_teacher:
+        return JsonResponse({'status': 'error', 'message': 'Quiz taking is restricted to students.'}, status=403)
+
     attempt = get_object_or_404(QuizAttempt, id=attempt_id, student=request.user)
     new_qs = QuizGenerator.generate_next_questions(attempt, batch_size=3)
     return JsonResponse({'status': 'success', 'count': len(new_qs)})
@@ -510,7 +540,11 @@ def fetch_more_questions(request, attempt_id):
 def end_quiz(request, attempt_id):
     """
     Calculates final score ONLY from attempted questions and marks attempt COMPLETED.
+    Restricted strictly to Students.
     """
+    if request.user.is_teacher:
+        return redirect('teacher_reports')
+
     attempt = get_object_or_404(QuizAttempt, id=attempt_id, student=request.user)
     attempt.completed_at = timezone.now()
     attempt.status = 'COMPLETED'
@@ -523,7 +557,11 @@ def end_quiz(request, attempt_id):
 def quiz_result(request, attempt_id):
     """
     Detailed Quiz Result breakdown screen.
+    Restricted strictly to Students.
     """
+    if request.user.is_teacher:
+        return redirect('teacher_reports')
+
     attempt = get_object_or_404(QuizAttempt, id=attempt_id, student=request.user)
     questions = attempt.questions.filter(student_answer__isnull=False)
 
@@ -538,7 +576,11 @@ def quiz_result(request, attempt_id):
 def quiz_history(request):
     """
     Student view for past quiz attempts.
+    Restricted strictly to Students.
     """
+    if request.user.is_teacher:
+        return redirect('teacher_reports')
+
     attempts = QuizAttempt.objects.filter(
         student=request.user,
         status='COMPLETED'

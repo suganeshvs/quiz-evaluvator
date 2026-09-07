@@ -1,4 +1,4 @@
-# AI Quiz Evaluator - Machine-Independent Auto-Installer & Launcher with WPF Pop-Up GUI
+# AI Quiz Evaluator - Sleek Horizontal Setup Installer
 
 [void][System.Reflection.Assembly]::LoadWithPartialName("PresentationFramework")
 [void][System.Reflection.Assembly]::LoadWithPartialName("PresentationCore")
@@ -7,53 +7,46 @@
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="AI Quiz Evaluator - Setup &amp; Installer" Height="440" Width="620"
+        Title="AI Quiz Evaluator Setup" Height="220" Width="640"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
-        Background="#0F172A" Foreground="#F8FAFC" FontFamily="Segoe UI">
-    <Grid Margin="28">
+        Background="#FFFFFF" Foreground="#0F172A" FontFamily="Segoe UI">
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="AI QUIZ EVALUATOR" FontSize="22" FontWeight="Bold" Foreground="#818CF8"/>
-            <TextBlock Text="Automated Setup &amp; AI Model Installer" FontSize="13" Foreground="#94A3B8" Margin="0,2,0,0"/>
-        </StackPanel>
-
-        <!-- Status & Percentage Readout -->
-        <Grid Grid.Row="1" Margin="0,0,0,8">
-            <TextBlock x:Name="StatusText" Text="Initializing setup installer..." FontSize="14" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Left"/>
-            <TextBlock x:Name="PercentText" Text="0%" FontSize="16" FontWeight="Bold" Foreground="#4ADE80" HorizontalAlignment="Right"/>
+        <!-- Header Bar -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel HorizontalAlignment="Left">
+                <TextBlock Text="AI Quiz Evaluator Setup" FontSize="18" FontWeight="SemiBold" Foreground="#0F172A"/>
+                <TextBlock Text="Setting up environment, dependencies, and AI engine..." FontSize="12" Foreground="#64748B" Margin="0,2,0,0"/>
+            </StackPanel>
+            <TextBlock x:Name="PercentText" Text="0%" FontSize="20" FontWeight="Bold" Foreground="#2563EB" HorizontalAlignment="Right" VerticalAlignment="Center"/>
         </Grid>
 
-        <!-- Smooth Animated Progress Bar Track -->
-        <Border Grid.Row="2" Height="20" CornerRadius="10" Background="#1E293B" BorderBrush="#334155" BorderThickness="1" Margin="0,0,0,18">
+        <!-- Horizontal Progress Bar Track -->
+        <Border Grid.Row="1" Height="12" CornerRadius="6" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,0,14">
             <Grid>
-                <Border x:Name="ProgressBarFill" HorizontalAlignment="Left" Width="0" CornerRadius="9">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#6366F1" Offset="0"/>
-                            <GradientStop Color="#A855F7" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Border.Background>
-                </Border>
+                <Border x:Name="ProgressBarFill" HorizontalAlignment="Left" Width="0" CornerRadius="5" Background="#2563EB"/>
             </Grid>
         </Border>
 
-        <!-- Live Step Log Box -->
-        <Border Grid.Row="3" Background="#1E293B" CornerRadius="8" BorderBrush="#334155" BorderThickness="1" Padding="12" Margin="0,0,0,16">
-            <ScrollViewer x:Name="LogScrollViewer" VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="LogText" Text="Starting installation queue..." FontSize="12" FontFamily="Consolas" Foreground="#CBD5E1" TextWrapping="Wrap"/>
-            </ScrollViewer>
+        <!-- Activity Readout Line -->
+        <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="6" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12,8" Margin="0,0,0,12">
+            <Grid>
+                <TextBlock x:Name="StatusText" Text="Initializing setup installer..." FontSize="12" FontWeight="Medium" Foreground="#334155" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="LogText" Text="Starting..." FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right"/>
+            </Grid>
         </Border>
 
-        <!-- Footer Note -->
-        <TextBlock Grid.Row="4" Text="Each task completes 100% sequentially before advancing to the next stage." FontSize="11" Foreground="#64748B" HorizontalAlignment="Center"/>
+        <!-- Footer -->
+        <Grid Grid.Row="3">
+            <TextBlock Text="AI Quiz Evaluator Setup Wizard" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Left"/>
+            <TextBlock Text="Please wait until launch..." FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Right"/>
+        </Grid>
     </Grid>
 </Window>
 "@
@@ -65,7 +58,6 @@ $statusLabel = $window.FindName('StatusText')
 $percentLabel = $window.FindName('PercentText')
 $barFill = $window.FindName('ProgressBarFill')
 $logBlock = $window.FindName('LogText')
-$logScroll = $window.FindName('LogScrollViewer')
 
 function Update-UI {
     param (
@@ -76,7 +68,7 @@ function Update-UI {
     if ($window -and $statusLabel) {
         $statusLabel.Text = $status
         $percentLabel.Text = "$percent%"
-        $totalWidth = 564
+        $totalWidth = 592
         $targetWidth = [math]::Max(0, [math]::Min($totalWidth, ($percent / 100) * $totalWidth))
         
         # Smooth animation transition
@@ -86,8 +78,7 @@ function Update-UI {
         $barFill.BeginAnimation([System.Windows.Controls.Border]::WidthProperty, $anim)
 
         if ($logMessage) {
-            $logBlock.Text += "`n[" + (Get-Date -Format "HH:mm:ss") + "] " + $logMessage
-            $logScroll.ScrollToBottom()
+            $logBlock.Text = $logMessage
         }
         [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([action]{}, [System.Windows.Threading.DispatcherPriority]::Background)
     }

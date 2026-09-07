@@ -10,7 +10,13 @@
             <div>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-1 text-muted small fw-semibold">
-                        <li class="breadcrumb-item"><a href="{% url 'student_dashboard' %}" class="text-decoration-none text-muted"><i class="bi bi-house me-1"></i>Classes</a></li>
+                        <li class="breadcrumb-item">
+                            {% if user.is_teacher %}
+                                <a href="{% url 'teacher_dashboard' %}" class="text-decoration-none text-muted"><i class="bi bi-house me-1"></i>Dashboard</a>
+                            {% else %}
+                                <a href="{% url 'student_dashboard' %}" class="text-decoration-none text-muted"><i class="bi bi-house me-1"></i>Classes</a>
+                            {% endif %}
+                        </li>
                         <li class="breadcrumb-item text-muted">{{ document.classroom.name }}</li>
                         <li class="breadcrumb-item text-muted">{{ document.classroom.subject }}</li>
                         <li class="breadcrumb-item active text-primary fw-bold">{{ document.title }}</li>
@@ -21,11 +27,17 @@
                 </h4>
             </div>
 
-            <!-- PROMINENT RECTANGULAR QUICK QUIZ BUTTON IN TOP RIGHT -->
+            <!-- QUICK QUIZ BUTTON (STUDENT ONLY) OR PREVIEW MODE BADGE (TEACHER ONLY) -->
             <div>
-                <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz">
-                    <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
-                </a>
+                {% if user.is_student %}
+                    <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz">
+                        <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
+                    </a>
+                {% elif user.is_teacher %}
+                    <span class="badge bg-light text-secondary border px-3 py-2 fw-semibold fs-6">
+                        <i class="bi bi-eye me-1 text-primary"></i> Material Preview Mode
+                    </span>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -38,9 +50,11 @@
                     <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
                         <i class="bi bi-file-text me-1 text-primary"></i> Page {{ current_page_num }} of {{ total_pages }}
                     </span>
+                    {% if user.is_student %}
                     <span class="text-muted small">
                         <i class="bi bi-eye me-1"></i> Highest Reached: Page <strong id="highestPageText">{{ progress.highest_page }}</strong>
                     </span>
+                    {% endif %}
                 </div>
 
                 <!-- PAGE CONTENT DISPLAY -->
@@ -110,37 +124,50 @@
         <!-- Sidebar Progress & Quick Quiz Panel -->
         <div class="col-lg-3">
             <div class="card card-custom p-4 border-0 mb-4 sticky-top" style="top: 80px;">
-                <h6 class="fw-bold text-uppercase text-muted tracking-wider small mb-3">Reading Progress Tracker</h6>
+                {% if user.is_student %}
+                    <h6 class="fw-bold text-uppercase text-muted tracking-wider small mb-3">Reading Progress Tracker</h6>
 
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="small fw-semibold">Coverage</span>
-                        <span class="small fw-bold text-primary">{{ progress.percentage }}%</span>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small fw-semibold">Coverage</span>
+                            <span class="small fw-bold text-primary">{{ progress.percentage }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress.percentage }}%;"></div>
+                        </div>
                     </div>
-                    <div class="progress" style="height: 10px;">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress.percentage }}%;"></div>
+
+                    <ul class="list-unstyled small text-muted mb-4">
+                        <li class="mb-2"><i class="bi bi-book-half text-primary me-2"></i> Current: <strong>Page {{ current_page_num }}</strong></li>
+                        <li class="mb-2"><i class="bi bi-check2-all text-success me-2"></i> Highest Reached: <strong>Page {{ progress.highest_page }}</strong></li>
+                        <li class="mb-2"><i class="bi bi-clock-history text-warning me-2"></i> Time Spent: <strong>{{ progress.time_spent }} sec</strong></li>
+                    </ul>
+
+                    <hr class="my-3">
+
+                    <div class="text-center">
+                        <p class="small text-muted mb-3">Ready to test your knowledge on what you have read so far?</p>
+                        <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz w-100 justify-content-center">
+                            <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
+                        </a>
                     </div>
-                </div>
-
-                <ul class="list-unstyled small text-muted mb-4">
-                    <li class="mb-2"><i class="bi bi-book-half text-primary me-2"></i> Current: <strong>Page {{ current_page_num }}</strong></li>
-                    <li class="mb-2"><i class="bi bi-check2-all text-success me-2"></i> Highest Reached: <strong>Page {{ progress.highest_page }}</strong></li>
-                    <li class="mb-2"><i class="bi bi-clock-history text-warning me-2"></i> Time Spent: <strong>{{ progress.time_spent }} sec</strong></li>
-                </ul>
-
-                <hr class="my-3">
-
-                <div class="text-center">
-                    <p class="small text-muted mb-3">Ready to test your knowledge on what you have read so far?</p>
-                    <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz w-100 justify-content-center">
-                        <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
-                    </a>
-                </div>
+                {% else %}
+                    <h6 class="fw-bold text-uppercase text-muted tracking-wider small mb-3">Material Info</h6>
+                    <ul class="list-unstyled small text-muted mb-4">
+                        <li class="mb-2"><i class="bi bi-journal-text text-primary me-2"></i> Document: <strong>{{ document.title }}</strong></li>
+                        <li class="mb-2"><i class="bi bi-file-earmark-pdf text-danger me-2"></i> Total Pages: <strong>{{ total_pages }}</strong></li>
+                        <li class="mb-2"><i class="bi bi-door-open text-success me-2"></i> Class: <strong>{{ document.classroom.name }}</strong></li>
+                    </ul>
+                    <div class="alert alert-light border small text-muted mb-0">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> As a teacher, you are previewing this material. Quiz taking and analysis are restricted to students.
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
+{% if user.is_student %}
 <script>
     // Real-time Reading Progress Tracker AJAX Pinger
     const docId = {{ document.id }};
@@ -174,4 +201,6 @@
     setInterval(sendReadingPing, 5000);
     sendReadingPing(); // initial ping
 </script>
+{% endif %}
 {% endblock %}
+

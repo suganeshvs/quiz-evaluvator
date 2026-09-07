@@ -26,6 +26,7 @@ urlpatterns = [
 
     # Student URLs
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
+    path('student/class/<int:class_id>/', views.student_class_detail, name='student_class_detail'),
     path('student/quiz/history/', views.quiz_history, name='quiz_history'),
 
     # Document & Reading Reader

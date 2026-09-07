@@ -66,7 +66,7 @@
 
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-light text-dark border px-3 py-2 fs-6">
-                    Question <strong class="text-primary">{{ current_q_index }}</strong> of <span id="totalQuestionsCount">{{ total_generated }}</span>
+                    Question <strong class="text-primary">{{ current_q_index }}</strong>
                 </span>
                 <!-- END QUIZ BUTTON -->
                 <a href="{% url 'end_quiz' attempt.id %}" class="btn btn-end-quiz" onclick="return confirm('Are you sure you want to end the quiz now? Your score will be calculated based on attempted questions only.');">

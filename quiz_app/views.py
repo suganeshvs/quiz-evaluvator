@@ -178,18 +178,10 @@ def delete_class(request, class_id):
         return redirect('student_dashboard')
 
     classroom = get_object_or_404(ClassRoom, id=class_id, teacher=request.user)
-    
-    if request.method == 'POST':
-        class_name = classroom.name
-        classroom.delete()
-        messages.success(request, f"Class '{class_name}' deleted successfully.")
-        return redirect('teacher_dashboard')
-
-    return render(request, 'teacher/delete_confirm.html', {
-        'object_type': 'Class',
-        'object_name': f"{classroom.name} ({classroom.code})",
-        'cancel_url': 'teacher_dashboard'
-    })
+    class_name = classroom.name
+    classroom.delete()
+    messages.success(request, f"Class '{class_name}' and all associated materials deleted successfully.")
+    return redirect('teacher_dashboard')
 
 
 @login_required
@@ -199,18 +191,21 @@ def delete_document(request, doc_id):
 
     doc = get_object_or_404(Document, id=doc_id, classroom__teacher=request.user)
     class_id = doc.classroom.id
+    doc_title = doc.title
 
-    if request.method == 'POST':
-        doc_title = doc.title
-        doc.delete()
-        messages.success(request, f"Document '{doc_title}' deleted successfully.")
-        return redirect('class_detail', class_id=class_id)
+    if doc.file:
+        try:
+            doc.file.delete(save=False)
+        except Exception:
+            pass
 
-    return render(request, 'teacher/delete_confirm.html', {
-        'object_type': 'Document',
-        'object_name': doc.title,
-        'cancel_url': 'teacher_document_list'
-    })
+    doc.delete()
+    messages.success(request, f"Document '{doc_title}' deleted successfully.")
+
+    referer = request.META.get('HTTP_REFERER', '')
+    if 'teacher_document_list' in referer or 'documents' in referer:
+        return redirect('teacher_document_list')
+    return redirect('class_detail', class_id=class_id)
 
 
 @login_required
@@ -281,24 +276,48 @@ def student_dashboard(request):
     if not request.user.is_student:
         return redirect('teacher_dashboard')
 
-    enrollments = Enrollment.objects.filter(student=request.user).select_related('classroom')
-    my_class_ids = enrollments.values_list('classroom_id', flat=True)
-    documents = Document.objects.filter(classroom_id__in=my_class_ids).order_by('-upload_date')
-
-    # Get reading progress per document
-    progress_map = {}
-    for p in ReadingProgress.objects.filter(student=request.user):
-        progress_map[p.document_id] = p
-
-    recent_attempts = QuizAttempt.objects.filter(student=request.user).select_related('document')[:5]
+    enrollments = Enrollment.objects.filter(student=request.user).select_related('classroom', 'classroom__teacher')
+    recent_attempts = QuizAttempt.objects.filter(student=request.user, status='COMPLETED').select_related('document').order_by('-completed_at')[:5]
 
     context = {
         'enrollments': enrollments,
+        'recent_attempts': recent_attempts,
+    }
+    return render(request, 'student/dashboard.html', context)
+
+
+@login_required
+def student_class_detail(request, class_id):
+    if not request.user.is_student:
+        return redirect('teacher_dashboard')
+
+    # Strict enrollment check: student can ONLY enter classes they are enrolled in
+    enrollment = Enrollment.objects.filter(student=request.user, classroom_id=class_id).select_related('classroom', 'classroom__teacher').first()
+    if not enrollment:
+        messages.error(request, "Access Denied: You are not enrolled in this classroom.")
+        return redirect('student_dashboard')
+
+    classroom = enrollment.classroom
+    documents = classroom.documents.all().order_by('-upload_date')
+
+    # Map student's reading progress for documents in this classroom
+    progress_map = {}
+    for p in ReadingProgress.objects.filter(student=request.user, document__in=documents):
+        progress_map[p.document_id] = p
+
+    recent_attempts = QuizAttempt.objects.filter(
+        student=request.user,
+        document__classroom=classroom,
+        status='COMPLETED'
+    ).select_related('document').order_by('-completed_at')[:5]
+
+    context = {
+        'classroom': classroom,
         'documents': documents,
         'progress_map': progress_map,
         'recent_attempts': recent_attempts,
     }
-    return render(request, 'student/dashboard.html', context)
+    return render(request, 'student/class_detail.html', context)
 
 
 @login_required
@@ -350,8 +369,11 @@ def document_viewer(request, doc_id):
 
     current_page = pages.filter(page_number=page_num).first()
 
+    pdf_url = doc.file.url if doc.file else None
+
     context = {
         'document': doc,
+        'pdf_url': pdf_url,
         'pages': pages,
         'current_page': current_page,
         'current_page_num': page_num,
@@ -469,9 +491,9 @@ def take_quiz(request, attempt_id):
     else:
         q_index = 1
 
-    # Generate more questions dynamically if student reached the end of current list
-    if q_index > len(questions) and len(questions) > 0:
-        new_q = QuizGenerator.generate_next_questions(attempt, batch_size=2)
+    # Generate initial/additional questions dynamically if list is empty or student reached the end
+    if not questions.exists() or q_index > len(questions):
+        QuizGenerator.generate_next_questions(attempt, batch_size=2)
         questions = attempt.questions.all().order_by('id')
 
     if q_index < 1:

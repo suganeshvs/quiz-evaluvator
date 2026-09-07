@@ -6,6 +6,11 @@ class Command(BaseCommand):
     help = "Seeds initial demo data for AI Quiz Analyzer in Google Classroom"
 
     def handle(self, *args, **options):
+        # Prevent re-creating deleted documents on fresh launches if database is already seeded
+        if User.objects.filter(username='teacher1').exists() and ClassRoom.objects.filter(code='SCI10A').exists():
+            self.stdout.write(self.style.SUCCESS("Database environment already initialized. Preserving user deletions."))
+            return
+
         self.stdout.write(self.style.NOTICE("Seeding demo environment..."))
 
         # 1. Create Teacher

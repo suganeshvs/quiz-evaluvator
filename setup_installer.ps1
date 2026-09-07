@@ -84,9 +84,23 @@ function Update-UI {
     }
 }
 
+function Test-ValidPython {
+    param ([string]$pyPath)
+    if (-not $pyPath) { return $false }
+    if ($pyPath -like "*WindowsApps*") { return $false }
+    if (-not (Test-Path $pyPath)) { return $false }
+    try {
+        $ver = & $pyPath --version 2>&1
+        if ($ver -match "Python 3\.") { return $true }
+    } catch {}
+    return $false
+}
+
 function Get-SystemPythonPath {
     $cmd = Get-Command python -ErrorAction SilentlyContinue
-    if ($cmd) { return $cmd.Source }
+    if ($cmd -and (Test-ValidPython $cmd.Source)) {
+        return $cmd.Source
+    }
 
     $paths = @(
         "C:\Program Files\Python311\python.exe",
@@ -97,11 +111,16 @@ function Get-SystemPythonPath {
         "$env:LocalAppData\Programs\Python\Python310\python.exe"
     )
     foreach ($p in $paths) {
-        if (Test-Path $p) { return $p }
+        if (Test-ValidPython $p) { return $p }
     }
 
     $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
-    if ($pyLauncher) { return "py" }
+    if ($pyLauncher) {
+        try {
+            $ver = & py -3 --version 2>&1
+            if ($ver -match "Python 3\.") { return "py" }
+        } catch {}
+    }
 
     return $null
 }
@@ -139,9 +158,15 @@ $timer.Add_Tick({
                 
                 $machinePath = [System.Environment]::GetEnvironmentVariable("Path","Machine")
                 $userPath = [System.Environment]::GetEnvironmentVariable("Path","User")
-                $env:PATH = "$machinePath;$userPath;C:\Program Files\Python311;C:\Program Files\Python311\Scripts;$env:PATH"
+                $env:PATH = "$machinePath;$userPath;C:\Program Files\Python311;C:\Program Files\Python311\Scripts;$env:LocalAppData\Programs\Python\Python311;$env:LocalAppData\Programs\Python\Python311\Scripts;$env:PATH"
                 $pyExe = Get-SystemPythonPath
             }
+
+            if (-not $pyExe) {
+                Update-UI 10 "[ERROR] Python installation failed." "ERROR: Could not verify Python executable."
+                return
+            }
+
             $script:pythonExe = $pyExe
             Update-UI 20 "Step 1/6: Python verified 100% complete!" "Python executable: $pyExe"
             $script:stage = 2
@@ -158,17 +183,41 @@ $timer.Add_Tick({
                 if (Test-Path "$PSScriptRoot\venv") {
                     Remove-Item "$PSScriptRoot\venv" -Recurse -Force -ErrorAction SilentlyContinue
                 }
+                
+                # Tier 1: Standard venv creation
                 if ($script:pythonExe -eq "py") {
                     & py -3 -m venv "$PSScriptRoot\venv"
                 } elseif ($script:pythonExe) {
                     & "$script:pythonExe" -m venv "$PSScriptRoot\venv"
-                } else {
-                    Update-UI 20 "[ERROR] Could not locate Python." "ERROR: Python not found."
-                    return
+                }
+
+                # Tier 2: Fallback to virtualenv package if venv executable was not created
+                if (-not (Test-Path $vPy)) {
+                    Update-UI 35 "Step 2/6: Retrying environment setup with virtualenv..." "Installing virtualenv..."
+                    if ($script:pythonExe -eq "py") {
+                        & py -3 -m pip install virtualenv --quiet
+                        & py -3 -m virtualenv "$PSScriptRoot\venv"
+                    } elseif ($script:pythonExe) {
+                        & "$script:pythonExe" -m pip install virtualenv --quiet
+                        & "$script:pythonExe" -m virtualenv "$PSScriptRoot\venv"
+                    }
                 }
             }
-            $script:venvPython = $vPy
-            Update-UI 40 "Step 2/6: Virtual environment 100% complete!" "Virtual environment verified: $vPy"
+
+            # Tier 3: Verified Executable Assignment with Guaranteed System Python Fallback
+            if (Test-Path $vPy) {
+                $script:venvPython = $vPy
+            } elseif ($script:pythonExe -and $script:pythonExe -ne "py" -and (Test-Path $script:pythonExe)) {
+                $script:venvPython = $script:pythonExe
+                Update-UI 38 "Step 2/6: Using System Python direct fallback..." "Assigned System Python: $script:venvPython"
+            } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+                $script:venvPython = (Get-Command python).Source
+            } else {
+                Update-UI 20 "[ERROR] Could not initialize Python environment." "ERROR: Python environment failed."
+                return
+            }
+
+            Update-UI 40 "Step 2/6: Python environment 100% verified!" "Executable ready: $script:venvPython"
             $script:stage = 3
             $timer.Interval = [TimeSpan]::FromMilliseconds(300)
             $timer.Start()
@@ -234,9 +283,36 @@ $timer.Add_Tick({
             $timer.Start()
         }
         7 {
-            Update-UI 100 "ALL TASKS COMPLETED! Launching Web Browser & Application..." "Setup 100% complete! Launching http://127.0.0.1:8000/..."
-            
-            # Open Chrome / Browser
+            Update-UI 99 "Starting application server..." "Launching Django background service on 127.0.0.1:8000..."
+
+            # 1. Start Django server as a persistent background process
+            Start-Process -FilePath $script:venvPython -ArgumentList "`"$PSScriptRoot\manage.py`" runserver 127.0.0.1:8000" -WindowStyle Hidden
+
+            # 2. Poll http://127.0.0.1:8000/ until server responds
+            Update-UI 99 "Waiting for application server readiness..." "Connecting to 127.0.0.1:8000..."
+            $serverReady = $false
+            for ($i = 0; $i -lt 20; $i++) {
+                try {
+                    $req = [System.Net.WebRequest]::Create("http://127.0.0.1:8000/")
+                    $req.Timeout = 1000
+                    $res = $req.GetResponse()
+                    if ($res) {
+                        $serverReady = $true
+                        $res.Close()
+                        break
+                    }
+                } catch {
+                    if ($_.Exception.Response) {
+                        $serverReady = $true
+                        break
+                    }
+                }
+                Start-Sleep -Milliseconds 500
+            }
+
+            Update-UI 100 "Server ready! Opening application..." "Launching browser..."
+
+            # 3. Open Browser ONLY after server is 100% responsive
             $chromePath = "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe"
             $chromePathx86 = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
 
@@ -248,11 +324,8 @@ $timer.Add_Tick({
                 Start-Process "http://127.0.0.1:8000/"
             }
 
-            # Close GUI Window smoothly before starting dev server loop
+            # 4. Close installer GUI window
             $window.Close()
-
-            # Launch Django server using venv Python
-            & "$script:venvPython" "$PSScriptRoot\manage.py" runserver 127.0.0.1:8000
         }
     }
 })

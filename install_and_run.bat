@@ -1,8 +1,8 @@
 @echo off
-TITLE AI Quiz Evaluator - Setup & Installer (0-100%)
+TITLE "AI Quiz Evaluator Setup"
 COLOR 0A
 
-:: Run PowerShell setup script with ExecutionPolicy Bypass
-powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0setup_installer.ps1"
+:: Launch WPF GUI Installer script cleanly in separate window
+powershell -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File "%~dp0setup_installer.ps1"
 
-pause
+

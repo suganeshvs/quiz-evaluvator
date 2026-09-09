@@ -1,78 +1,124 @@
 {% extends 'base.html' %}
 
-{% block title %}Quiz Reports | AI Quiz Analyzer{% endblock %}
+{% block title %}Quiz Performance Reports | AI Quiz Analyzer{% endblock %}
 
 {% block content %}
-<div class="container py-3">
-    <div class="mb-4">
-        <h3 class="fw-bold mb-1">Student Quiz Reports</h3>
-        <p class="text-muted mb-0">AI-generated Quick Quiz scores, reading coverage, and progress details.</p>
+<div class="py-2">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Student Quiz Reports</h3>
+            <p class="text-secondary small mb-0">Monitor scores, reading coverage boundaries, and quiz completion analytics.</p>
+        </div>
     </div>
 
-    <div class="card card-custom border-0 p-0 overflow-hidden">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-muted small text-uppercase">
-                    <tr>
-                        <th class="ps-4 py-3">Student</th>
-                        <th class="py-3">Document Title</th>
-                        <th class="py-3">Reading Boundary</th>
-                        <th class="py-3">Questions Attempted</th>
-                        <th class="py-3">Score</th>
-                        <th class="py-3">Percentage</th>
-                        <th class="py-3">Completion Date</th>
-                        <th class="pe-4 py-3 text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for attempt in attempts %}
-                    <tr>
-                        <td class="ps-4 py-3 fw-bold text-dark">
-                            <i class="bi bi-person-fill text-primary me-1"></i> {{ attempt.student.username }}
-                        </td>
-                        <td class="fw-semibold text-secondary">{{ attempt.document.title }}</td>
-                        <td>
-                            <span class="badge bg-light text-dark border">
-                                Page {{ attempt.confirmed_page }} (P:{{ attempt.confirmed_paragraph }}, L:{{ attempt.confirmed_line }})
-                            </span>
-                        </td>
-                        <td>{{ attempt.questions_attempted }} questions</td>
-                        <td class="fw-bold text-indigo" style="color: #4f46e5;">{{ attempt.score }}</td>
-                        <td>
-                            {% if attempt.percentage >= 75 %}
-                                <span class="badge bg-success">{{ attempt.percentage }}%</span>
-                            {% elif attempt.percentage >= 50 %}
-                                <span class="badge bg-warning text-dark">{{ attempt.percentage }}%</span>
-                            {% else %}
-                                <span class="badge bg-danger">{{ attempt.percentage }}%</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-muted small">{{ attempt.completed_at|date:"M d, Y H:i" }}</td>
-                        <td class="pe-4 text-end">
-                            <div class="d-flex justify-content-end gap-1">
-                                <form method="post" action="{% url 'delete_quiz_attempt' attempt.id %}" class="d-inline" onsubmit="return confirm('Erase this attempt by {{ attempt.student.username }} on {{ attempt.document.title }}?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Erase This Attempt">
-                                        <i class="bi bi-trash"></i> Erase
-                                    </button>
-                                </form>
-                                <form method="post" action="{% url 'clear_student_attempts' attempt.student.id %}" class="d-inline" onsubmit="return confirm('Erase ALL quiz attempts done by student {{ attempt.student.username }}?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Erase All Attempts for this Student">
-                                        <i class="bi bi-eraser-fill"></i> Clear All
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">No student quiz reports found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <!-- Analytics Overview Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="gc-card p-3 d-flex align-items-center gap-3">
+                <div class="gc-brand-icon" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                    <i class="bi bi-bar-chart-line"></i>
+                </div>
+                <div>
+                    <span class="small text-secondary fw-medium d-block">Total Quiz Attempts</span>
+                    <h4 class="fw-bold text-dark mb-0">{{ attempts.count }}</h4>
+                </div>
+            </div>
         </div>
+        <div class="col-md-4">
+            <div class="gc-card p-3 d-flex align-items-center gap-3">
+                <div class="gc-brand-icon" style="width: 44px; height: 44px; font-size: 1.3rem; background: var(--gc-success-bg); color: var(--gc-success);">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div>
+                    <span class="small text-secondary fw-medium d-block">Completed Sessions</span>
+                    <h4 class="fw-bold text-dark mb-0">{{ attempts.count }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="gc-card p-3 d-flex align-items-center gap-3">
+                <div class="gc-brand-icon" style="width: 44px; height: 44px; font-size: 1.3rem; background: var(--gc-warning-bg); color: var(--gc-warning);">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div>
+                    <span class="small text-secondary fw-medium d-block">Recorded Submissions</span>
+                    <h4 class="fw-bold text-dark mb-0">{{ attempts.count }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Table Card -->
+    <div class="gc-card p-4">
+        {% if attempts %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary small text-uppercase">
+                        <tr>
+                            <th class="ps-3 py-3">Student</th>
+                            <th class="py-3">Document Title</th>
+                            <th class="py-3">Reading Boundary</th>
+                            <th class="py-3">Questions</th>
+                            <th class="py-3">Score</th>
+                            <th class="py-3">Percentage</th>
+                            <th class="py-3">Completion Date</th>
+                            <th class="pe-3 py-3 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attempt in attempts %}
+                        <tr>
+                            <td class="ps-3 py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="gc-avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                        {{ attempt.student.username|first|upper }}
+                                    </div>
+                                    <span class="fw-semibold text-dark">{{ attempt.student.username }}</span>
+                                </div>
+                            </td>
+                            <td class="fw-medium text-dark text-truncate" style="max-width: 180px;">{{ attempt.document.title }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark border small">
+                                    Page {{ attempt.confirmed_page }} (P:{{ attempt.confirmed_paragraph }}, L:{{ attempt.confirmed_line }})
+                                </span>
+                            </td>
+                            <td class="small text-secondary">{{ attempt.questions_attempted }} Questions</td>
+                            <td class="fw-bold text-dark font-monospace">{{ attempt.score }}</td>
+                            <td>
+                                {% if attempt.percentage >= 75 %}
+                                    <span class="badge bg-success font-monospace px-2.5 py-1">{{ attempt.percentage }}%</span>
+                                {% elif attempt.percentage >= 50 %}
+                                    <span class="badge bg-warning text-dark font-monospace px-2.5 py-1">{{ attempt.percentage }}%</span>
+                                {% else %}
+                                    <span class="badge bg-danger font-monospace px-2.5 py-1">{{ attempt.percentage }}%</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-secondary small">{{ attempt.completed_at|date:"M d, Y H:i" }}</td>
+                            <td class="pe-3 text-end">
+                                <div class="d-flex justify-content-end gap-1">
+                                    <form method="post" action="{% url 'delete_quiz_attempt' attempt.id %}" class="d-inline" onsubmit="return confirm('Erase this attempt by {{ attempt.student.username }} on {{ attempt.document.title }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-gc-danger btn-sm py-1 px-2" title="Erase Attempt">
+                                            <i class="bi bi-trash"></i> Erase
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'clear_student_attempts' attempt.student.id %}" class="d-inline" onsubmit="return confirm('Erase ALL quiz attempts done by student {{ attempt.student.username }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger py-1 px-2" title="Erase All Attempts for this Student" style="border-radius: var(--gc-radius-sm);">
+                                            <i class="bi bi-eraser-fill"></i> Clear All
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            {% include 'components/empty_state.html' with icon_class="bi-bar-chart-line" title="No quiz reports available" description="Student quiz performance will automatically be recorded here once students complete Quick Quizzes." %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

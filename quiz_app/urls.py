@@ -2,8 +2,10 @@ from django.urls import path
 from quiz_app import views
 
 urlpatterns = [
-    # Auth
-    path('', views.login_view, name='login'),
+    # Auth & Landing
+    path('', views.landing_view, name='landing'),
+    path('landing/', views.landing_view, name='landing'),
+    path('download-setup/', views.download_setup_view, name='download_setup'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard_view, name='dashboard'),

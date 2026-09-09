@@ -3,26 +3,25 @@
 {% block title %}{{ document.title }} | Document Reader{% endblock %}
 
 {% block content %}
-<div class="container py-3">
+<div class="py-2">
     <!-- Top Classroom Header Bar -->
-    <div class="card card-custom p-3 border-0 mb-4 bg-white">
+    <div class="gc-card p-3 border mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1 text-muted small fw-semibold">
+                <nav aria-label="breadcrumb" class="mb-1">
+                    <ol class="breadcrumb mb-0 text-secondary small">
                         <li class="breadcrumb-item">
                             {% if user.is_teacher %}
-                                <a href="{% url 'teacher_dashboard' %}" class="text-decoration-none text-muted"><i class="bi bi-house me-1"></i>Dashboard</a>
+                                <a href="{% url 'teacher_dashboard' %}" class="text-secondary text-decoration-none">Dashboard</a>
                             {% else %}
-                                <a href="{% url 'student_dashboard' %}" class="text-decoration-none text-muted"><i class="bi bi-house me-1"></i>Classes</a>
+                                <a href="{% url 'student_dashboard' %}" class="text-secondary text-decoration-none">My Classes</a>
                             {% endif %}
                         </li>
-                        <li class="breadcrumb-item text-muted">{{ document.classroom.name }}</li>
-                        <li class="breadcrumb-item text-muted">{{ document.classroom.subject }}</li>
-                        <li class="breadcrumb-item active text-primary fw-bold">{{ document.title }}</li>
+                        <li class="breadcrumb-item text-secondary">{{ document.classroom.name }}</li>
+                        <li class="breadcrumb-item active text-primary fw-semibold" aria-current="page">{{ document.title }}</li>
                     </ol>
                 </nav>
-                <h4 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
                     <i class="bi bi-file-earmark-pdf-fill text-danger"></i> {{ document.title }}
                 </h4>
             </div>
@@ -30,12 +29,12 @@
             <!-- QUICK QUIZ BUTTON (STUDENT ONLY) OR PREVIEW MODE BADGE (TEACHER ONLY) -->
             <div>
                 {% if user.is_student %}
-                    <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz">
+                    <a href="{% url 'confirm_progress' document.id %}" class="btn-quick-quiz">
                         <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
                     </a>
                 {% elif user.is_teacher %}
-                    <span class="badge bg-light text-secondary border px-3 py-2 fw-semibold fs-6">
-                        <i class="bi bi-eye me-1 text-primary"></i> Material Preview Mode
+                    <span class="badge bg-light text-secondary border px-3 py-2 fw-medium">
+                        <i class="bi bi-eye text-primary me-1"></i> Preview Mode
                     </span>
                 {% endif %}
             </div>
@@ -45,10 +44,10 @@
     <div class="row g-4">
         <!-- Main Document Reader Area -->
         <div class="col-lg-9">
-            <div class="card card-custom p-3 p-md-4 border-0 shadow-sm min-vh-50" style="min-height: 600px; background: #ffffff;">
+            <div class="gc-card p-3 p-md-4" style="min-height: 600px;">
                 <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3 flex-wrap gap-2">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-primary text-white border px-3 py-2 fw-semibold">
+                        <span class="badge bg-primary text-white px-3 py-2 fw-medium">
                             <i class="bi bi-file-text me-1"></i> Page <span id="pageNumDisplay">{{ current_page_num }}</span> of {{ total_pages }}
                         </span>
                         {% if pdf_url %}
@@ -61,19 +60,19 @@
                     </div>
 
                     {% if user.is_student %}
-                    <span class="text-muted small">
-                        <i class="bi bi-eye me-1"></i> Highest Reached: Page <strong id="highestPageText">{{ progress.highest_page }}</strong>
+                    <span class="text-secondary small">
+                        <i class="bi bi-eye me-1"></i> Highest Reached: Page <strong id="highestPageText" class="text-dark">{{ progress.highest_page }}</strong>
                     </span>
                     {% endif %}
                 </div>
 
-                <!-- ORIGINAL PDF DOCUMENT DISPLAY AREA -->
+                <!-- PDF DOCUMENT DISPLAY CANVAS / FALLBACK -->
                 {% if pdf_url %}
-                    <div id="pdfRenderContainer" class="pdf-container text-center bg-secondary-subtle p-3 rounded-3 overflow-auto position-relative" style="min-height: 620px; max-height: 750px;">
+                    <div id="pdfRenderContainer" class="pdf-container text-center bg-light p-3 rounded-3 overflow-auto position-relative" style="min-height: 600px; max-height: 750px; border: 1px solid var(--gc-border);">
                         <div class="d-flex justify-content-center">
                             <canvas id="pdf-canvas" class="shadow-sm rounded bg-white" style="max-width: 100%; display: inline-block;"></canvas>
                         </div>
-                        <!-- Native PDF iFrame Fallback if canvas loading takes time -->
+                        <!-- Native PDF iFrame Fallback -->
                         <div id="pdfIframeFallback" class="d-none">
                             <iframe src="{{ pdf_url }}#page={{ current_page_num }}" style="width: 100%; height: 620px;" class="border rounded-3"></iframe>
                         </div>
@@ -84,12 +83,12 @@
                         {% for paragraph in current_page.paragraphs_data %}
                             <div class="mb-4">
                                 <span class="badge bg-light text-muted border mb-2 me-2">Para {{ paragraph.paragraph_number }}</span>
-                                <p class="fs-5 text-dark leading-relaxed" style="line-height: 1.8;">
+                                <p class="fs-5 text-dark" style="line-height: 1.8;">
                                     {{ paragraph.text }}
                                 </p>
                             </div>
                         {% empty %}
-                            <div class="fs-5 text-dark leading-relaxed mb-4" style="line-height: 1.8;">
+                            <div class="fs-5 text-dark mb-4" style="line-height: 1.8;">
                                 {{ current_page.extracted_text|linebreaks }}
                             </div>
                         {% endfor %}
@@ -100,26 +99,26 @@
                     </div>
                 {% endif %}
 
-                <!-- Footer Reader Navigation Controls -->
+                <!-- Footer Reader Controls -->
                 <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3">
                     {% if current_page_num > 1 %}
-                        <a href="?page={{ current_page_num|add:'-1' }}" class="btn btn-outline-secondary px-4">
-                            <i class="bi bi-chevron-left me-1"></i> Previous
+                        <a href="?page={{ current_page_num|add:'-1' }}" class="btn-gc-secondary">
+                            <i class="bi bi-chevron-left"></i> Previous
                         </a>
                     {% else %}
-                        <button class="btn btn-outline-secondary px-4" disabled>
-                            <i class="bi bi-chevron-left me-1"></i> Previous
+                        <button class="btn-gc-secondary" disabled>
+                            <i class="bi bi-chevron-left"></i> Previous
                         </button>
                     {% endif %}
 
-                    <span class="text-muted fw-semibold">Page {{ current_page_num }} of {{ total_pages }}</span>
+                    <span class="text-secondary fw-medium small">Page {{ current_page_num }} of {{ total_pages }}</span>
 
                     {% if current_page_num < total_pages %}
-                        <a href="?page={{ current_page_num|add:'1' }}" class="btn btn-purple px-4">
-                            Next <i class="bi bi-chevron-right ms-1"></i>
+                        <a href="?page={{ current_page_num|add:'1' }}" class="btn-gc-primary">
+                            Next <i class="bi bi-chevron-right"></i>
                         </a>
                     {% else %}
-                        <button class="btn btn-purple px-4" disabled>
+                        <button class="btn-gc-primary" disabled>
                             End of Material
                         </button>
                     {% endif %}
@@ -127,45 +126,45 @@
             </div>
         </div>
 
-        <!-- Sidebar Progress & Quick Quiz Panel -->
+        <!-- Sidebar Reading Progress & Quick Quiz Panel -->
         <div class="col-lg-3">
-            <div class="card card-custom p-4 border-0 mb-4 sticky-top" style="top: 80px;">
+            <div class="gc-card p-4 sticky-top" style="top: 80px;">
                 {% if user.is_student %}
-                    <h6 class="fw-bold text-uppercase text-muted tracking-wider small mb-3">Reading Progress Tracker</h6>
+                    <h6 class="fw-bold text-uppercase text-muted small mb-3">Reading Progress</h6>
 
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="small fw-semibold">Coverage</span>
+                            <span class="small fw-medium text-secondary">Coverage</span>
                             <span class="small fw-bold text-primary">{{ progress.percentage }}%</span>
                         </div>
-                        <div class="progress" style="height: 10px;">
+                        <div class="progress" style="height: 8px; border-radius: 4px;">
                             <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress.percentage }}%;"></div>
                         </div>
                     </div>
 
-                    <ul class="list-unstyled small text-muted mb-4">
+                    <ul class="list-unstyled small text-secondary mb-4">
                         <li class="mb-2"><i class="bi bi-book-half text-primary me-2"></i> Current: <strong>Page {{ current_page_num }}</strong></li>
-                        <li class="mb-2"><i class="bi bi-check2-all text-success me-2"></i> Highest Reached: <strong>Page {{ progress.highest_page }}</strong></li>
-                        <li class="mb-2"><i class="bi bi-clock-history text-warning me-2"></i> Time Spent: <strong>{{ progress.time_spent }} sec</strong></li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i> Highest Reached: <strong>Page {{ progress.highest_page }}</strong></li>
+                        <li class="mb-2"><i class="bi bi-clock text-warning me-2"></i> Time Spent: <strong>{{ progress.time_spent }} sec</strong></li>
                     </ul>
 
-                    <hr class="my-3">
+                    <hr class="my-3 text-muted">
 
                     <div class="text-center">
-                        <p class="small text-muted mb-3">Ready to test your knowledge on what you have read so far?</p>
-                        <a href="{% url 'confirm_progress' document.id %}" class="btn btn-quick-quiz w-100 justify-content-center">
+                        <p class="small text-secondary mb-3">Ready to test your knowledge on what you have read?</p>
+                        <a href="{% url 'confirm_progress' document.id %}" class="btn-quick-quiz w-100 justify-content-center">
                             <i class="bi bi-lightning-charge-fill"></i> QUICK QUIZ
                         </a>
                     </div>
                 {% else %}
-                    <h6 class="fw-bold text-uppercase text-muted tracking-wider small mb-3">Material Info</h6>
-                    <ul class="list-unstyled small text-muted mb-4">
+                    <h6 class="fw-bold text-uppercase text-muted small mb-3">Material Information</h6>
+                    <ul class="list-unstyled small text-secondary mb-4">
                         <li class="mb-2"><i class="bi bi-journal-text text-primary me-2"></i> Document: <strong>{{ document.title }}</strong></li>
                         <li class="mb-2"><i class="bi bi-file-earmark-pdf text-danger me-2"></i> Total Pages: <strong>{{ total_pages }}</strong></li>
                         <li class="mb-2"><i class="bi bi-door-open text-success me-2"></i> Class: <strong>{{ document.classroom.name }}</strong></li>
                     </ul>
-                    <div class="alert alert-light border small text-muted mb-0">
-                        <i class="bi bi-info-circle me-1 text-primary"></i> As a teacher, you are previewing this material. Quiz taking and analysis are restricted to students.
+                    <div class="alert alert-light border small text-secondary mb-0">
+                        <i class="bi bi-info-circle text-primary me-1"></i> Preview mode. Quiz taking is restricted to students.
                     </div>
                 {% endif %}
             </div>
@@ -188,9 +187,10 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     const canvas = document.getElementById('pdf-canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas ? canvas.getContext('2d') : null;
 
     function renderPage(num) {
+        if (!canvas || !ctx || !pdfDoc) return;
         pageRendering = true;
         pdfDoc.getPage(num).then(function(page) {
             const viewport = page.getViewport({ scale: scale });
@@ -213,7 +213,8 @@
         }).catch(function(err) {
             console.error("PDF.js render error, switching to fallback iframe:", err);
             document.getElementById('pdf-canvas').style.display = 'none';
-            document.getElementById('pdfIframeFallback').classList.remove('d-none');
+            const fallback = document.getElementById('pdfIframeFallback');
+            if (fallback) fallback.classList.remove('d-none');
         });
     }
 
@@ -237,13 +238,13 @@
     });
 
     // Zoom Controls
-    document.getElementById('zoomInBtn').addEventListener('click', function() {
+    document.getElementById('zoomInBtn')?.addEventListener('click', function() {
         scale += 0.25;
         document.getElementById('zoomLevelText').innerText = Math.round(scale * 80) + '%';
         queueRenderPage(pageNum);
     });
 
-    document.getElementById('zoomOutBtn').addEventListener('click', function() {
+    document.getElementById('zoomOutBtn')?.addEventListener('click', function() {
         if (scale > 0.5) {
             scale -= 0.25;
             document.getElementById('zoomLevelText').innerText = Math.round(scale * 80) + '%';
@@ -251,7 +252,7 @@
         }
     });
 
-    document.getElementById('zoomResetBtn').addEventListener('click', function() {
+    document.getElementById('zoomResetBtn')?.addEventListener('click', function() {
         scale = 1.25;
         document.getElementById('zoomLevelText').innerText = '100%';
         queueRenderPage(pageNum);
@@ -289,11 +290,8 @@
         .catch(err => console.error("Ping error:", err));
     }
 
-    // Ping every 5 seconds while viewing
     setInterval(sendReadingPing, 5000);
-    sendReadingPing(); // initial ping
+    sendReadingPing();
 </script>
 {% endif %}
 {% endblock %}
-
-

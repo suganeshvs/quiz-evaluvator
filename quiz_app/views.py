@@ -39,6 +39,32 @@ def logout_view(request):
     return redirect('login')
 
 
+def landing_view(request):
+    """
+    Public online landing page showcasing application description,
+    features, setup guide, and zip installer download button.
+    """
+    return render(request, 'landing.html')
+
+
+def download_setup_view(request):
+    """
+    Serves the pre-bundled AI_Quiz_Analyzer_Setup.zip file.
+    """
+    import os
+    from django.http import FileResponse, Http404
+    from django.conf import settings
+
+    zip_path = os.path.join(settings.BASE_DIR, 'static', 'downloads', 'AI_Quiz_Analyzer_Setup.zip')
+    if not os.path.exists(zip_path):
+        zip_path = os.path.join(settings.BASE_DIR, 'AI_Quiz_Analyzer_Setup.zip')
+
+    if os.path.exists(zip_path):
+        return FileResponse(open(zip_path, 'rb'), as_attachment=True, filename='AI_Quiz_Analyzer_Setup.zip')
+    else:
+        raise Http404("Installer setup package not found.")
+
+
 @login_required
 def dashboard_view(request):
     """

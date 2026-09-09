@@ -1,0 +1,2 @@
+res = MsgBox("Do you want to install and run AI Quiz Analyzer now?", 36, "AI Quiz Analyzer Setup")  
+WScript.Quit(res)  

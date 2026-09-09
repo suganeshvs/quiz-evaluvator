@@ -1,0 +1,608 @@
+/* ==========================================
+   Google Classroom Design System (Exact Spec)
+   AI Quiz Analyzer / Quiz Evaluator
+   ========================================== */
+
+:root {
+  /* Google Classroom Brand Green Palette */
+  --gc-primary: #1E8E3E;
+  --gc-primary-hover: #137333;
+  --gc-primary-light: #E6F4EA;
+  --gc-primary-dark: #137333;
+
+  /* Google Clean Neutrals */
+  --gc-bg: #F8F9FA;
+  --gc-surface: #FFFFFF;
+  --gc-surface-secondary: #F1F3F4;
+
+  --gc-text-main: #202124;
+  --gc-text-secondary: #5F6368;
+  --gc-text-disabled: #9AA0A6;
+
+  --gc-border: #DADCE0;
+  --gc-border-light: #F1F3F4;
+
+  /* Supporting Google Workspace Colors */
+  --gc-blue: #1A73E8;
+  --gc-blue-light: #E8F0FE;
+  --gc-red: #D93025;
+  --gc-red-light: #FCE8E6;
+  --gc-yellow: #F9AB00;
+  --gc-yellow-light: #FEF7E0;
+  --gc-success: #188038;
+  --gc-success-light: #E6F4EA;
+
+  /* Material Design Radius Tokens (4px - 12px) */
+  --gc-radius-sm: 4px;
+  --gc-radius-md: 8px;
+  --gc-radius-lg: 12px;
+
+  /* Subtle Material Shadows */
+  --gc-shadow-sm: 0 1px 2px 0 rgba(60,64,67,0.15), 0 1px 3px 1px rgba(60,64,67,0.08);
+  --gc-shadow-md: 0 1px 3px 0 rgba(60,64,67,0.2), 0 4px 8px 3px rgba(60,64,67,0.1);
+
+  --gc-header-height: 64px;
+  --gc-sidebar-width: 256px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  background-color: var(--gc-bg);
+  color: var(--gc-text-main);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================
+   APP HEADER & NAVIGATION DRAWER
+   ========================================== */
+
+.gc-header {
+  height: var(--gc-header-height);
+  background-color: var(--gc-surface);
+  border-bottom: 1px solid var(--gc-border);
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gc-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: var(--gc-text-main);
+  font-weight: 500;
+  font-size: 1.2rem;
+}
+
+/* Green Chalkboard Logo SVG Component */
+.gc-chalkboard-logo {
+  width: 36px;
+  height: 32px;
+  background-color: #1E8E3E;
+  border: 3px solid #F9AB00; /* Yellow frame */
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+
+.gc-brand-title {
+  color: var(--gc-text-main);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+}
+
+.gc-layout {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - var(--gc-header-height));
+}
+
+/* Sidebar Drawer */
+.gc-sidebar {
+  width: var(--gc-sidebar-width);
+  background-color: var(--gc-surface);
+  border-right: 1px solid var(--gc-border);
+  padding: 0.75rem 0.5rem 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gc-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 48px;
+  padding: 0 1.5rem;
+  color: var(--gc-text-secondary);
+  text-decoration: none;
+  font-size: 0.925rem;
+  font-weight: 500;
+  border-radius: 0 24px 24px 0;
+  margin-bottom: 2px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.gc-nav-link i {
+  font-size: 1.25rem;
+  color: var(--gc-text-secondary);
+}
+
+.gc-nav-link:hover {
+  background-color: var(--gc-surface-secondary);
+  color: var(--gc-text-main);
+}
+
+.gc-nav-link.active {
+  background-color: var(--gc-primary-light);
+  color: var(--gc-primary-dark);
+  font-weight: 600;
+}
+
+.gc-nav-link.active i {
+  color: var(--gc-primary);
+}
+
+.gc-main {
+  flex: 1;
+  padding: 2rem 2.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 991.98px) {
+  .gc-sidebar {
+    position: fixed;
+    top: var(--gc-header-height);
+    left: 0;
+    bottom: 0;
+    z-index: 1010;
+    transform: translateX(-100%);
+    box-shadow: var(--gc-shadow-md);
+  }
+  .gc-sidebar.show {
+    transform: translateX(0);
+  }
+  .gc-main {
+    padding: 1.25rem 1rem;
+  }
+}
+
+/* ==========================================
+   BUTTONS (Material Design 40-44px, 4-8px radius)
+   ========================================== */
+
+.btn-gc-primary {
+  background-color: var(--gc-primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+  height: 40px;
+  padding: 0 1.25rem;
+  border-radius: var(--gc-radius-sm) !important;
+  border: none !important;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-gc-primary:hover {
+  background-color: var(--gc-primary-hover) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.btn-gc-secondary {
+  background-color: var(--gc-surface) !important;
+  color: var(--gc-text-main) !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+  height: 40px;
+  padding: 0 1.25rem;
+  border-radius: var(--gc-radius-sm) !important;
+  border: 1px solid var(--gc-border) !important;
+  transition: background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-gc-secondary:hover {
+  background-color: var(--gc-surface-secondary) !important;
+  color: var(--gc-text-main) !important;
+}
+
+.btn-gc-danger {
+  background-color: var(--gc-surface) !important;
+  color: var(--gc-red) !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+  height: 36px;
+  padding: 0 0.85rem;
+  border-radius: var(--gc-radius-sm) !important;
+  border: 1px solid var(--gc-border) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-gc-danger:hover {
+  background-color: var(--gc-red-light) !important;
+  border-color: #f5c6cb !important;
+}
+
+.btn-quick-quiz {
+  background-color: var(--gc-primary);
+  color: #FFFFFF !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  height: 40px;
+  padding: 0 1.25rem;
+  border-radius: var(--gc-radius-sm);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.btn-quick-quiz:hover {
+  background-color: var(--gc-primary-hover);
+}
+
+/* ==========================================
+   CARDS & CLASSROOM SURFACES
+   ========================================== */
+
+.gc-card {
+  background-color: var(--gc-surface);
+  border: 1px solid var(--gc-border);
+  border-radius: var(--gc-radius-md);
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.1);
+  overflow: hidden;
+}
+
+/* Google Classroom Class Cards */
+.gc-class-card {
+  background-color: var(--gc-surface);
+  border: 1px solid var(--gc-border);
+  border-radius: var(--gc-radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: box-shadow 0.2s ease;
+}
+
+.gc-class-card:hover {
+  box-shadow: var(--gc-shadow-md);
+}
+
+.gc-class-card-header {
+  padding: 1.25rem;
+  color: #FFFFFF;
+  position: relative;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Classroom Header Banner Color Swatches */
+.gc-banner-green { background-color: #1E8E3E; }
+.gc-banner-blue { background-color: #1A73E8; }
+.gc-banner-teal { background-color: #129EAF; }
+.gc-banner-orange { background-color: #E37400; }
+.gc-banner-purple { background-color: #A142F4; }
+
+.gc-class-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0 0 0.2rem 0;
+  color: #FFFFFF;
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+.gc-class-title:hover {
+  text-decoration: underline;
+}
+
+.gc-class-subtitle {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.gc-class-code-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0,0,0,0.2);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-family: monospace;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--gc-radius-sm);
+}
+
+.gc-class-card-body {
+  padding: 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.gc-class-teacher-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  color: var(--gc-text-secondary);
+  margin-bottom: 1rem;
+}
+
+.gc-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--gc-primary-light);
+  color: var(--gc-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.gc-class-card-footer {
+  border-top: 1px solid var(--gc-border-light);
+  padding-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--gc-text-secondary);
+}
+
+/* Classroom Detail Header Banner */
+.gc-classroom-banner {
+  border-radius: var(--gc-radius-md);
+  padding: 2rem 2.25rem;
+  color: #FFFFFF;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+/* Tabs Navigation (Google Stream / Classwork / People) */
+.gc-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--gc-border);
+  margin-bottom: 1.5rem;
+}
+
+.gc-tab-item {
+  padding: 0.85rem 1.25rem;
+  color: var(--gc-text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gc-tab-item:hover {
+  color: var(--gc-primary);
+  background-color: var(--gc-surface-secondary);
+  border-radius: var(--gc-radius-sm) var(--gc-radius-sm) 0 0;
+}
+
+.gc-tab-item.active {
+  color: var(--gc-primary);
+  border-bottom-color: var(--gc-primary);
+  font-weight: 600;
+}
+
+/* Resource List Row */
+.gc-resource-item {
+  background-color: var(--gc-surface);
+  border: 1px solid var(--gc-border);
+  border-radius: var(--gc-radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: border-color 0.15s ease;
+}
+
+.gc-resource-item:hover {
+  border-color: var(--gc-primary);
+}
+
+.gc-resource-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gc-primary-light);
+  color: var(--gc-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Quiet Empty State */
+.gc-empty-state {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  background-color: var(--gc-surface);
+  border: 1px dashed var(--gc-border);
+  border-radius: var(--gc-radius-md);
+}
+
+.gc-empty-icon {
+  width: 60px;
+  height: 60px;
+  background-color: var(--gc-surface-secondary);
+  color: var(--gc-text-disabled);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  margin: 0 auto 1rem auto;
+}
+
+.gc-empty-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--gc-text-main);
+  margin-bottom: 0.35rem;
+}
+
+.gc-empty-desc {
+  font-size: 0.875rem;
+  color: var(--gc-text-secondary);
+  max-width: 400px;
+  margin: 0 auto 1.25rem auto;
+}
+
+/* ==========================================
+   QUIZ ENGINE STYLING
+   ========================================== */
+
+.gc-option-card {
+  background-color: var(--gc-surface);
+  border: 1px solid var(--gc-border);
+  border-radius: var(--gc-radius-md);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gc-option-card:hover:not(.disabled) {
+  background-color: var(--gc-surface-secondary);
+}
+
+.gc-option-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--gc-border);
+  background-color: var(--gc-bg);
+  color: var(--gc-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.gc-option-card.selected {
+  border-color: var(--gc-primary) !important;
+  background-color: var(--gc-primary-light) !important;
+}
+
+.gc-option-card.selected .gc-option-badge {
+  background-color: var(--gc-primary);
+  color: #FFFFFF;
+  border-color: var(--gc-primary);
+}
+
+.gc-option-card.correct {
+  border-color: var(--gc-success) !important;
+  background-color: var(--gc-success-light) !important;
+  color: var(--gc-success) !important;
+}
+
+.gc-option-card.correct .gc-option-badge {
+  background-color: var(--gc-success);
+  color: #FFFFFF;
+  border-color: var(--gc-success);
+}
+
+.gc-option-card.wrong {
+  border-color: var(--gc-red) !important;
+  background-color: var(--gc-red-light) !important;
+  color: var(--gc-red) !important;
+}
+
+.gc-option-card.wrong .gc-option-badge {
+  background-color: var(--gc-red);
+  color: #FFFFFF;
+  border-color: var(--gc-red);
+}
+
+/* Upload Drag & Drop Area */
+.gc-upload-zone {
+  border: 2px dashed var(--gc-border);
+  background-color: var(--gc-surface);
+  border-radius: var(--gc-radius-md);
+  padding: 3rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.gc-upload-zone:hover, .gc-upload-zone.dragover {
+  background-color: var(--gc-primary-light);
+  border-color: var(--gc-primary);
+}
+
+/* User Role Badge */
+.badge-gc-role {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3em 0.75em;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.badge-gc-teacher {
+  background-color: var(--gc-primary-light);
+  color: var(--gc-primary-dark);
+}
+
+.badge-gc-student {
+  background-color: var(--gc-blue-light);
+  color: var(--gc-blue);
+}

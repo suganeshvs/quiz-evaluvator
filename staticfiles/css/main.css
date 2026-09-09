@@ -1,0 +1,24 @@
+/* Custom Styles for AI Quiz Analyzer */
+:root {
+    --primary-indigo: #4f46e5;
+    --primary-hover: #4338ca;
+    --secondary-indigo: #818cf8;
+    --light-indigo: #e0e7ff;
+}
+
+.bg-indigo-subtle {
+    background-color: #e0e7ff;
+    color: #4f46e5;
+}
+
+.text-indigo {
+    color: #4f46e5;
+}
+
+.border-indigo {
+    border-color: #818cf8 !important;
+}
+
+.leading-relaxed {
+    line-height: 1.8;
+}

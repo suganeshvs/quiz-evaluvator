@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Quiz Analyzer | Google Classroom Educational Application{% endblock %}
+
+{% block content %}
+<div class="py-3">
+    <!-- Hero Section -->
+    <div class="gc-card p-4 p-md-5 mb-4 text-center bg-white border">
+        <div class="gc-chalkboard-logo mx-auto mb-3" style="width: 72px; height: 60px; border-width: 4px;">
+            <svg width="40" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 11C13.6569 11 15 9.65685 15 8C15 6.34315 13.6569 5 12 5C10.3431 5 9 6.34315 9 8C9 9.65685 10.3431 11 12 11Z" fill="white"/>
+                <path d="M6 18C6 15.3333 8.66667 14 12 14C15.3333 14 18 15.3333 18 18V19H6V18Z" fill="white"/>
+                <circle cx="5" cy="11" r="2" fill="white" opacity="0.8"/>
+                <circle cx="19" cy="11" r="2" fill="white" opacity="0.8"/>
+                <rect x="15" y="17.5" width="5" height="1" fill="white"/>
+            </svg>
+        </div>
+
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded mb-3 font-weight-medium" style="background: var(--gc-primary-light); color: var(--gc-primary-dark);">
+            <i class="bi bi-mortarboard-fill me-1"></i> Official Google Classroom Inspired Desktop Application
+        </span>
+
+        <h1 class="display-5 fw-bold text-dark mb-3" style="letter-spacing: -0.5px;">
+            AI Quiz Analyzer & Evaluator
+        </h1>
+
+        <p class="fs-5 text-secondary mx-auto mb-4" style="max-width: 720px; line-height: 1.6;">
+            Learn smarter. Practice better. Upload course documents (PDF/PPT), track student reading boundaries down to exact pages & paragraphs, and generate targeted AI self-assessment quizes.
+        </p>
+
+        <!-- Main Download Action Button -->
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+            <a href="{% url 'download_setup' %}" class="btn-gc-primary font-weight-semibold fs-6 py-2 px-4 shadow-sm" style="height: 48px;">
+                <i class="bi bi-download fs-5"></i> Download Application Setup (.zip / .bat)
+            </a>
+            <a href="{% url 'login' %}" class="btn-gc-secondary font-weight-semibold fs-6 py-2 px-4" style="height: 48px;">
+                <i class="bi bi-box-arrow-in-right fs-5"></i> Launch Online Web App
+            </a>
+        </div>
+        <div class="form-text mt-3 text-secondary small">Includes <code>install_and_run.bat</code>, setup wizard, desktop shortcut installer with logo icon, and local Llama 3.2 AI engine.</div>
+    </div>
+
+    <!-- Application Highlights Grid -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="gc-card p-4 h-100">
+                <div class="gc-resource-icon mb-3" style="background: var(--gc-primary-light); color: var(--gc-primary);">
+                    <i class="bi bi-palette"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Google Classroom UI</h5>
+                <p class="text-secondary small mb-0">Designed around Google Classroom green (#1E8E3E), Material Design components, student rosters, and color class cards.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="gc-card p-4 h-100">
+                <div class="gc-resource-icon mb-3" style="background: var(--gc-blue-light); color: var(--gc-blue);">
+                    <i class="bi bi-book-half"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">PDF & PPT Reader</h5>
+                <p class="text-secondary small mb-0">Integrated Mozilla PDF.js document reader with automatic text extraction, page zoom, and real-time coverage tracking.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="gc-card p-4 h-100">
+                <div class="gc-resource-icon mb-3" style="background: var(--gc-yellow-light); color: var(--gc-yellow);">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Targeted AI Quizzes</h5>
+                <p class="text-secondary small mb-0">Confirms student reading boundary before generating dynamic multiple-choice questions strictly from read pages.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="gc-card p-4 h-100">
+                <div class="gc-resource-icon mb-3" style="background: var(--gc-red-light); color: var(--gc-red);">
+                    <i class="bi bi-bar-chart-line"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Teacher Analytics</h5>
+                <p class="text-secondary small mb-0">Teacher dashboard featuring classroom rosters, student score analytics, and one-click quiz attempt clearing.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Installation Steps Card -->
+    <div class="gc-card p-4 p-md-5">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="gc-chalkboard-logo" style="width: 48px; height: 40px; border-width: 3px;">
+                <svg width="28" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 11C13.6569 11 15 9.65685 15 8C15 6.34315 13.6569 5 12 5C10.3431 5 9 6.34315 9 8C9 9.65685 10.3431 11 12 11Z" fill="white"/>
+                    <path d="M6 18C6 15.3333 8.66667 14 12 14C15.3333 14 18 15.3333 18 18V19H6V18Z" fill="white"/>
+                </svg>
+            </div>
+            <div>
+                <h4 class="fw-bold text-dark mb-1">Local Windows Installation Guide</h4>
+                <p class="text-secondary small mb-0">Run AI Quiz Analyzer natively as a Windows application with desktop shortcut icon.</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border h-100">
+                    <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">1</span>
+                    <h6 class="fw-bold text-dark mb-1">Download ZIP</h6>
+                    <p class="small text-secondary mb-0">Click the download button above to get <code>AI_Quiz_Analyzer_Setup.zip</code>.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border h-100">
+                    <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">2</span>
+                    <h6 class="fw-bold text-dark mb-1">Extract Archive</h6>
+                    <p class="small text-secondary mb-0">Extract the downloaded ZIP folder to any location on your Windows computer.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border h-100">
+                    <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">3</span>
+                    <h6 class="fw-bold text-dark mb-1">Run Setup Batch</h6>
+                    <p class="small text-secondary mb-0">Double click <code>install_and_run.bat</code> to start the graphical setup installer.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded border h-100">
+                    <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">4</span>
+                    <h6 class="fw-bold text-dark mb-1">Launch Application</h6>
+                    <p class="small text-secondary mb-0">The installer creates an <strong>AI Quiz Analyzer</strong> desktop shortcut with the green chalkboard logo and opens the app!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4 border-top pt-4">
+            <a href="{% url 'download_setup' %}" class="btn-gc-primary px-4 py-2 font-weight-medium">
+                <i class="bi bi-download me-1"></i> Download AI Quiz Analyzer Setup Package
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -439,7 +439,35 @@ $timer.Add_Tick({
                 }
             }
 
-            Update-UI 98 "Step 6/6: AI Model setup complete!" "Llama 3.2 1B model configured."
+            Update-UI 98 "Step 6/6: Creating application shortcuts & icon..." "Configuring Windows shortcuts..."
+            try {
+                $wshell = New-Object -ComObject WScript.Shell
+                $icoPath = "$PSScriptRoot\logo.ico"
+                $batPath = "$PSScriptRoot\install_and_run.bat"
+                
+                # 1. Desktop Shortcut
+                $desktopDir = [System.Environment]::GetFolderPath('Desktop')
+                $desktopShortcut = $wshell.CreateShortcut("$desktopDir\AI Quiz Analyzer.lnk")
+                $desktopShortcut.TargetPath = $batPath
+                $desktopShortcut.WorkingDirectory = $PSScriptRoot
+                $desktopShortcut.Description = "Launch AI Quiz Analyzer Application"
+                if (Test-Path $icoPath) {
+                    $desktopShortcut.IconLocation = "$icoPath,0"
+                }
+                $desktopShortcut.Save()
+
+                # 2. Start Menu Shortcut
+                $startMenuDir = [System.Environment]::GetFolderPath('Programs')
+                $startShortcut = $wshell.CreateShortcut("$startMenuDir\AI Quiz Analyzer.lnk")
+                $startShortcut.TargetPath = $batPath
+                $startShortcut.WorkingDirectory = $PSScriptRoot
+                $startShortcut.Description = "Launch AI Quiz Analyzer Application"
+                if (Test-Path $icoPath) {
+                    $startShortcut.IconLocation = "$icoPath,0"
+                }
+                $startShortcut.Save()
+            } catch {}
+
             $script:stage = 7
             $timer.Interval = [TimeSpan]::FromMilliseconds(500)
             $timer.Start()

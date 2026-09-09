@@ -2,84 +2,33 @@
 
 {% block title %}Quick Quiz | AI Quiz Analyzer{% endblock %}
 
-{% block extra_css %}
-<style>
-    .option-card {
-        border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1rem 1.25rem;
-        margin-bottom: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        background: #ffffff;
-    }
-
-    .option-card:hover:not(.disabled) {
-        border-color: #6366f1;
-        background: #f5f3ff;
-        transform: translateX(4px);
-    }
-
-    .option-card.selected {
-        border-color: #4f46e5;
-        background: #e0e7ff;
-    }
-
-    .option-card.correct {
-        border-color: #10b981 !important;
-        background: #d1fae5 !important;
-        color: #065f46;
-    }
-
-    .option-card.wrong {
-        border-color: #ef4444 !important;
-        background: #fee2e2 !important;
-        color: #991b1b;
-    }
-
-    .btn-end-quiz {
-        background-color: #dc2626;
-        color: #ffffff;
-        font-weight: 700;
-        border-radius: 8px;
-        padding: 0.5rem 1.25rem;
-    }
-
-    .btn-end-quiz:hover {
-        background-color: #b91c1c;
-        color: #ffffff;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="container py-3">
-    <!-- Header info bar -->
-    <div class="card card-custom p-3 border-0 mb-4">
+<div class="py-2">
+    <!-- Header Bar -->
+    <div class="gc-card p-3 mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-                <span class="badge bg-indigo-subtle text-indigo fw-bold px-3 py-1 mb-1" style="background: #e0e7ff; color: #4f46e5;">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 mb-1 font-weight-medium" style="background: var(--gc-primary-light); color: var(--gc-primary-dark);">
                     <i class="bi bi-shield-check me-1"></i> Confirmed Boundary: Page 1 to {{ attempt.confirmed_page }}
                 </span>
-                <h5 class="fw-bold mb-0 text-dark">{{ attempt.document.title }}</h5>
+                <h5 class="fw-bold text-dark mb-0">{{ attempt.document.title }}</h5>
             </div>
 
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-light text-dark border px-3 py-2 fs-6">
                     Question <strong class="text-primary">{{ current_q_index }}</strong>
                 </span>
-                <!-- END QUIZ BUTTON -->
-                <a href="{% url 'end_quiz' attempt.id %}" class="btn btn-end-quiz" onclick="return confirm('Are you sure you want to end the quiz now? Your score will be calculated based on attempted questions only.');">
-                    <i class="bi bi-stop-circle me-1"></i> END QUIZ
+                <a href="{% url 'end_quiz' attempt.id %}" class="btn-gc-danger" onclick="return confirm('End quiz session now? Your score will be calculated based on attempted questions only.');">
+                    <i class="bi bi-stop-circle"></i> END QUIZ
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Active Question Container -->
+    <!-- Question Card Container -->
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card card-custom p-4 p-md-5 border-0 shadow">
+            <div class="gc-card p-4 p-md-5">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="badge bg-secondary font-monospace">SOURCE: PAGE {{ current_q.source_page }}</span>
                     {% if current_q.is_image_based %}
@@ -91,55 +40,47 @@
                     {{ current_q_index }}. {{ current_q.question_text }}
                 </h4>
 
-                <!-- 4 Options -->
+                <!-- 4 Selectable Option Cards (Material White / Green Selected) -->
                 <div id="optionsContainer">
-                    <div class="option-card {% if current_q.student_answer == 'A' %}selected{% endif %}" onclick="selectOption('A')" id="opt_A">
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark border me-3 fs-6 px-2.5 py-1">A</span>
-                            <span class="fw-medium fs-6">{{ current_q.option_a }}</span>
-                        </div>
+                    <div class="gc-option-card {% if current_q.student_answer == 'A' %}selected{% endif %}" onclick="selectOption('A')" id="opt_A">
+                        <div class="gc-option-badge">A</div>
+                        <div class="fw-medium fs-6 text-dark">{{ current_q.option_a }}</div>
                     </div>
 
-                    <div class="option-card {% if current_q.student_answer == 'B' %}selected{% endif %}" onclick="selectOption('B')" id="opt_B">
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark border me-3 fs-6 px-2.5 py-1">B</span>
-                            <span class="fw-medium fs-6">{{ current_q.option_b }}</span>
-                        </div>
+                    <div class="gc-option-card {% if current_q.student_answer == 'B' %}selected{% endif %}" onclick="selectOption('B')" id="opt_B">
+                        <div class="gc-option-badge">B</div>
+                        <div class="fw-medium fs-6 text-dark">{{ current_q.option_b }}</div>
                     </div>
 
-                    <div class="option-card {% if current_q.student_answer == 'C' %}selected{% endif %}" onclick="selectOption('C')" id="opt_C">
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark border me-3 fs-6 px-2.5 py-1">C</span>
-                            <span class="fw-medium fs-6">{{ current_q.option_c }}</span>
-                        </div>
+                    <div class="gc-option-card {% if current_q.student_answer == 'C' %}selected{% endif %}" onclick="selectOption('C')" id="opt_C">
+                        <div class="gc-option-badge">C</div>
+                        <div class="fw-medium fs-6 text-dark">{{ current_q.option_c }}</div>
                     </div>
 
-                    <div class="option-card {% if current_q.student_answer == 'D' %}selected{% endif %}" onclick="selectOption('D')" id="opt_D">
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark border me-3 fs-6 px-2.5 py-1">D</span>
-                            <span class="fw-medium fs-6">{{ current_q.option_d }}</span>
-                        </div>
+                    <div class="gc-option-card {% if current_q.student_answer == 'D' %}selected{% endif %}" onclick="selectOption('D')" id="opt_D">
+                        <div class="gc-option-badge">D</div>
+                        <div class="fw-medium fs-6 text-dark">{{ current_q.option_d }}</div>
                     </div>
                 </div>
 
-                <!-- Explanation Container (Appears on answer) -->
-                <div id="explanationContainer" class="p-3 mt-4 rounded-3 border" style="display: {% if current_q.student_answer %}block{% else %}none{% endif %}; background: #f8fafc;">
+                <!-- Explanation Callout (Appears on answer) -->
+                <div id="explanationContainer" class="p-3 mt-4 rounded border" style="display: {% if current_q.student_answer %}block{% else %}none{% endif %}; background: var(--gc-bg); border-color: var(--gc-border) !important;">
                     <h6 class="fw-bold text-dark mb-1"><i class="bi bi-info-circle text-primary me-1"></i> Source Explanation (Page {{ current_q.source_page }})</h6>
-                    <p class="mb-0 text-muted small" id="explanationText">{{ current_q.explanation }}</p>
+                    <p class="mb-0 text-secondary small" id="explanationText">{{ current_q.explanation }}</p>
                 </div>
 
-                <!-- Footer Action Buttons -->
+                <!-- Footer Navigation Controls -->
                 <div class="d-flex justify-content-between align-items-center mt-4 border-top pt-4">
                     {% if current_q_index > 1 %}
-                        <a href="?q={{ current_q_index|add:'-1' }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i> Previous Question
+                        <a href="?q={{ current_q_index|add:'-1' }}" class="btn-gc-secondary">
+                            <i class="bi bi-arrow-left"></i> Previous Question
                         </a>
                     {% else %}
                         <div></div>
                     {% endif %}
 
-                    <a href="?q={{ current_q_index|add:'1' }}" class="btn btn-purple px-4" id="nextQuestionBtn">
-                        Next Question <i class="bi bi-arrow-right ms-1"></i>
+                    <a href="?q={{ current_q_index|add:'1' }}" class="btn-gc-primary" id="nextQuestionBtn">
+                        Next Question <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
             </div>
@@ -157,7 +98,7 @@
     {% endif %}
 
     function selectOption(option) {
-        if (answered) return; // Prevent double clicking
+        if (answered) return;
 
         fetch(`/api/question/${questionId}/answer/`, {
             method: 'POST',
@@ -183,11 +124,13 @@
         const options = ['A', 'B', 'C', 'D'];
         options.forEach(opt => {
             const card = document.getElementById(`opt_${opt}`);
-            card.classList.add('disabled');
-            if (opt === correctOpt) {
-                card.classList.add('correct');
-            } else if (opt === selectedOpt && selectedOpt !== correctOpt) {
-                card.classList.add('wrong');
+            if (card) {
+                card.classList.add('disabled');
+                if (opt === correctOpt) {
+                    card.classList.add('correct');
+                } else if (opt === selectedOpt && selectedOpt !== correctOpt) {
+                    card.classList.add('wrong');
+                }
             }
         });
     }

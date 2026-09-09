@@ -1,0 +1,74 @@
+<header class="gc-header">
+    <div class="d-flex align-items-center gap-3">
+        {% if user.is_authenticated %}
+        <button class="btn btn-light btn-sm border-0 text-secondary fs-5 p-1 px-2" type="button" onclick="toggleSidebar()" aria-label="Toggle Navigation">
+            <i class="bi bi-list"></i>
+        </button>
+        {% endif %}
+        
+        <a class="gc-brand" href="{% url 'dashboard' %}">
+            <!-- Iconic Green Chalkboard Logo -->
+            <div class="gc-chalkboard-logo">
+                <svg width="22" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 11C13.6569 11 15 9.65685 15 8C15 6.34315 13.6569 5 12 5C10.3431 5 9 6.34315 9 8C9 9.65685 10.3431 11 12 11Z" fill="white"/>
+                    <path d="M6 18C6 15.3333 8.66667 14 12 14C15.3333 14 18 15.3333 18 18V19H6V18Z" fill="white"/>
+                    <circle cx="5" cy="11" r="2" fill="white" opacity="0.8"/>
+                    <circle cx="19" cy="11" r="2" fill="white" opacity="0.8"/>
+                    <rect x="15" y="17.5" width="5" height="1" fill="white"/>
+                </svg>
+            </div>
+            <span class="gc-brand-title">AI Quiz Analyzer</span>
+        </a>
+    </div>
+
+    {% if user.is_authenticated %}
+    <div class="d-flex align-items-center gap-3">
+        <span class="badge-gc-role {% if user.is_teacher %}badge-gc-teacher{% else %}badge-gc-student{% endif %} d-none d-md-inline-flex">
+            <i class="bi {% if user.is_teacher %}bi-person-badge{% else %}bi-backpack{% endif %}"></i>
+            {{ user.get_role_display }}
+        </span>
+
+        <!-- Help Icon -->
+        <button class="btn btn-light rounded-circle text-secondary p-1 d-none d-sm-flex align-items-center justify-content-center" style="width: 36px; height: 36px;" title="Help & Info" data-bs-toggle="modal" data-bs-target="#helpModal">
+            <i class="bi bi-question-circle fs-5"></i>
+        </button>
+
+        <!-- User Dropdown Menu -->
+        <div class="dropdown">
+            <button class="btn btn-light border-0 p-1 rounded-circle d-flex align-items-center justify-content-center" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 38px; height: 38px; background: var(--gc-primary-light); color: var(--gc-primary-dark);">
+                <span class="fw-bold fs-6">{{ user.username|first|upper }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border mt-2 p-2" aria-labelledby="userMenuDropdown" style="min-width: 220px; border-radius: var(--gc-radius-md); border-color: var(--gc-border);">
+                <li class="px-3 py-2 border-bottom mb-1">
+                    <div class="fw-semibold text-dark">{{ user.username }}</div>
+                    <div class="small text-secondary">{{ user.email|default:user.get_role_display }}</div>
+                </li>
+                <li>
+                    <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2 text-secondary" href="{% url 'dashboard' %}">
+                        <i class="bi bi-grid text-primary"></i> Classroom Dashboard
+                    </a>
+                </li>
+                {% if user.is_student %}
+                <li>
+                    <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2 text-secondary" href="{% url 'quiz_history' %}">
+                        <i class="bi bi-clock-history text-primary"></i> My Quiz History
+                    </a>
+                </li>
+                {% else %}
+                <li>
+                    <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2 text-secondary" href="{% url 'teacher_reports' %}">
+                        <i class="bi bi-bar-chart-line text-primary"></i> Student Quiz Reports
+                    </a>
+                </li>
+                {% endif %}
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                    <a class="dropdown-item rounded py-2 d-flex align-items-center gap-2 text-danger fw-medium" href="{% url 'logout' %}">
+                        <i class="bi bi-box-arrow-right"></i> Sign Out
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</header>

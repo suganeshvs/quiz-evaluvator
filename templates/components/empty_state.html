@@ -1,0 +1,18 @@
+{% comment %}
+Reusable Google Empty State Component
+Variables: icon_class, title, description, action_url, action_text, action_icon
+{% endcomment %}
+
+<div class="gc-empty-state">
+    <div class="gc-empty-icon">
+        <i class="bi {{ icon_class|default:'bi-folder-x' }}"></i>
+    </div>
+    <h5 class="gc-empty-title">{{ title }}</h5>
+    <p class="gc-empty-desc">{{ description }}</p>
+    {% if action_url and action_text %}
+        <a href="{{ action_url }}" class="btn-gc-primary">
+            {% if action_icon %}<i class="bi {{ action_icon }}"></i>{% endif %}
+            {{ action_text }}
+        </a>
+    {% endif %}
+</div>

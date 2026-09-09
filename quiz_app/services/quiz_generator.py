@@ -47,12 +47,19 @@ class QuizGenerator:
                 else:
                     continue
 
-            source_page = q.get('source_page', confirmed_page)
+            source_page_raw = q.get('source_page', confirmed_page)
+            try:
+                import re
+                digits = re.sub(r'\D', '', str(source_page_raw))
+                source_page = int(digits) if digits else confirmed_page
+            except (ValueError, TypeError):
+                source_page = confirmed_page
 
             # STRICT BOUNDARY CHECK: No question from unread pages!
             if source_page > confirmed_page:
                 print(f"REJECTED QUESTION: source_page ({source_page}) > confirmed_page ({confirmed_page})")
                 continue
+
 
             # Option validation
             opt_a = q.get('option_a', '').strip()

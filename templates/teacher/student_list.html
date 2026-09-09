@@ -1,54 +1,67 @@
 {% extends 'base.html' %}
 
-{% block title %}Students | AI Quiz Analyzer{% endblock %}
+{% block title %}Enrolled Students | AI Quiz Analyzer{% endblock %}
 
 {% block content %}
-<div class="container py-3">
-    <div class="mb-4">
-        <h3 class="fw-bold mb-1">Enrolled Students</h3>
-        <p class="text-muted mb-0">Students currently enrolled in your Google Classroom classes.</p>
+<div class="py-2">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Enrolled Students</h3>
+            <p class="text-secondary small mb-0">Students currently enrolled across your Google Classroom classes.</p>
+        </div>
     </div>
 
-    <div class="card card-custom border-0 p-0 overflow-hidden">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-muted small text-uppercase">
-                    <tr>
-                        <th class="ps-4 py-3">Student Name</th>
-                        <th class="py-3">Email</th>
-                        <th class="py-3">Enrolled Class</th>
-                        <th class="py-3">Subject</th>
-                        <th class="py-3">Enrollment Date</th>
-                        <th class="pe-4 py-3 text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in enrollments %}
-                    <tr>
-                        <td class="ps-4 py-3 fw-bold text-dark">
-                            <i class="bi bi-person-circle me-2 text-primary"></i> {{ item.student.username }}
-                        </td>
-                        <td class="text-muted">{{ item.student.email|default:"student@classroom.edu" }}</td>
-                        <td><span class="badge bg-indigo-subtle text-indigo fw-semibold" style="background:#e0e7ff; color:#4f46e5;">{{ item.classroom.name }}</span></td>
-                        <td class="text-secondary">{{ item.classroom.subject }}</td>
-                        <td class="text-muted small">{{ item.enrolled_at|date:"M d, Y" }}</td>
-                        <td class="pe-4 text-end">
-                            <form method="post" action="{% url 'clear_student_attempts_class' item.classroom.id item.student.id %}" class="d-inline" onsubmit="return confirm('Erase all quiz attempts for student {{ item.student.username }} in class {{ item.classroom.name }}?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Erase All Quiz Attempts for this Student">
-                                    <i class="bi bi-eraser me-1"></i> Erase Quiz Attempts
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">No students enrolled yet.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- Student Roster Card -->
+    <div class="gc-card p-4">
+        {% if enrollments %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary small text-uppercase">
+                        <tr>
+                            <th class="ps-3 py-3">Student</th>
+                            <th class="py-3">Email Address</th>
+                            <th class="py-3">Enrolled Class</th>
+                            <th class="py-3">Subject</th>
+                            <th class="py-3">Enrollment Date</th>
+                            <th class="pe-3 py-3 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in enrollments %}
+                        <tr>
+                            <td class="ps-3 py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="gc-avatar">
+                                        {{ item.student.username|first|upper }}
+                                    </div>
+                                    <span class="fw-semibold text-dark">{{ item.student.username }}</span>
+                                </div>
+                            </td>
+                            <td class="text-secondary small">{{ item.student.email|default:"student@classroom.edu" }}</td>
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-weight-medium">
+                                    {{ item.classroom.name }}
+                                </span>
+                            </td>
+                            <td class="text-secondary small">{{ item.classroom.subject }}</td>
+                            <td class="text-secondary small">{{ item.enrolled_at|date:"M d, Y" }}</td>
+                            <td class="pe-3 text-end">
+                                <form method="post" action="{% url 'clear_student_attempts_class' item.classroom.id item.student.id %}" class="d-inline" onsubmit="return confirm('Erase all quiz attempts for student {{ item.student.username }} in class {{ item.classroom.name }}?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-gc-danger btn-sm" title="Erase All Quiz Attempts for this Student">
+                                        <i class="bi bi-eraser"></i> Erase Quizzes
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            {% include 'components/empty_state.html' with icon_class="bi-people" title="No enrolled students yet" description="Enroll students into your classes to monitor their learning progress." %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

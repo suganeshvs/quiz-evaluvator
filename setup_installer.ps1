@@ -434,8 +434,8 @@ $timer.Add_Tick({
             if (-not $hasModel) {
                 $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
                 if ($ollamaCmd) {
-                    Update-UI 94 "Step 6/6: Pulling Llama 3.2 1B model..." "Executing ollama pull llama3.2:1b..."
-                    & ollama pull llama3.2:1b 2>&1 | Out-Null
+                    Update-UI 94 "Step 6/6: Starting Llama 3.2 1B model download..." "Pulling llama3.2:1b model in background..."
+                    Start-Process -FilePath $ollamaCmd.Source -ArgumentList "pull llama3.2:1b" -WindowStyle Hidden -ErrorAction SilentlyContinue
                 }
             }
 
@@ -443,7 +443,10 @@ $timer.Add_Tick({
             try {
                 $wshell = New-Object -ComObject WScript.Shell
                 $icoPath = "$PSScriptRoot\logo.ico"
-                $batPath = "$PSScriptRoot\install_and_run.bat"
+                $batPath = "$PSScriptRoot\run.bat"
+                if (-not (Test-Path $batPath)) {
+                    $batPath = "$PSScriptRoot\install_and_run.bat"
+                }
                 
                 # 1. Desktop Shortcut
                 $desktopDir = [System.Environment]::GetFolderPath('Desktop')

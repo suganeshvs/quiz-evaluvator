@@ -50,16 +50,17 @@ A web application designed for educational environments. The platform enables te
 
 ---
 
-## Quick Automated 1-Click Setup (Recommended for New Machines)
+## Running the Application (1-Click Launch)
 
-Double-click **`install_and_run.bat`** (or run `.\setup_installer.ps1` in PowerShell).
+- **Quick Launch (Already Installed)**: Double-click **`run.bat`** (or `install_and_run.bat`). It will verify migrations, ensure demo data is loaded, open your browser to `http://127.0.0.1:8000/`, and keep the server running.
+- **First-Time Setup (New Machine)**: Double-click **`install_and_run.bat`** (or run `.\setup_installer.ps1` in PowerShell).
 
 This installer will automatically:
 1. Create Python virtual environment (`venv`).
 2. Install all Python dependencies from `requirements.txt`.
 3. Run database migrations & seed demo data.
 4. Auto-install Ollama (`irm https://ollama.com/install.ps1 | iex`).
-5. Pull the `llama3.2:1b` model (`ollama pull llama3.2:1b`).
+5. Pull the `llama3.2:1b` model in background (`ollama pull llama3.2:1b`).
 6. Launch the server at `http://127.0.0.1:8000/` and open your browser automatically.
 
 ---

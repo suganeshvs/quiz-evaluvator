@@ -29,16 +29,16 @@
             Learn smarter. Practice better. Upload course documents (PDF/PPT), track student reading boundaries down to exact pages & paragraphs, and generate targeted AI self-assessment quizes.
         </p>
 
-        <!-- Main Download Action Button -->
+        <!-- Main Action Buttons -->
         <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-            <a href="{% url 'download_setup' %}" class="btn-gc-primary font-weight-semibold fs-6 py-2 px-4 shadow-sm" style="height: 48px;">
-                <i class="bi bi-download fs-5"></i> Download Application Setup (.zip / .bat)
+            <a href="{% url 'login' %}" class="btn-gc-primary font-weight-semibold fs-6 py-2 px-4 shadow-sm" style="height: 48px;">
+                <i class="bi bi-box-arrow-in-right fs-5 me-1"></i> Sign In to Google Classroom
             </a>
-            <a href="{% url 'login' %}" class="btn-gc-secondary font-weight-semibold fs-6 py-2 px-4" style="height: 48px;">
-                <i class="bi bi-box-arrow-in-right fs-5"></i> Launch Online Web App
+            <a href="#quickstart" class="btn-gc-secondary font-weight-semibold fs-6 py-2 px-4" style="height: 48px;">
+                <i class="bi bi-play-circle fs-5 me-1"></i> Setup & Installation Guide
             </a>
         </div>
-        <div class="form-text mt-3 text-secondary small">Includes <code>install_and_run.bat</code>, setup wizard, desktop shortcut installer with logo icon, and local Llama 3.2 AI engine.</div>
+        <div class="form-text mt-3 text-secondary small">Demo Credentials: <strong>teacher1</strong> / <code>password123</code> &bull; <strong>student1</strong> / <code>password123</code></div>
     </div>
 
     <!-- Application Highlights Grid -->
@@ -85,7 +85,7 @@
     </div>
 
     <!-- Installation Steps Card -->
-    <div class="gc-card p-4 p-md-5">
+    <div class="gc-card p-4 p-md-5" id="quickstart">
         <div class="d-flex align-items-center gap-3 mb-4">
             <div class="gc-chalkboard-logo" style="width: 48px; height: 40px; border-width: 3px;">
                 <svg width="28" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -94,8 +94,8 @@
                 </svg>
             </div>
             <div>
-                <h4 class="fw-bold text-dark mb-1">Local Windows Installation Guide</h4>
-                <p class="text-secondary small mb-0">Run AI Quiz Analyzer natively as a Windows application with desktop shortcut icon.</p>
+                <h4 class="fw-bold text-dark mb-1">GitHub Quick Run Guide (1-Click Setup)</h4>
+                <p class="text-secondary small mb-0">Running AI Quiz Analyzer on a new machine from GitHub.</p>
             </div>
         </div>
 
@@ -103,36 +103,36 @@
             <div class="col-md-3">
                 <div class="p-3 bg-light rounded border h-100">
                     <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">1</span>
-                    <h6 class="fw-bold text-dark mb-1">Download ZIP</h6>
-                    <p class="small text-secondary mb-0">Click the download button above to get <code>AI_Quiz_Analyzer_Setup.zip</code>.</p>
+                    <h6 class="fw-bold text-dark mb-1">Download Repository</h6>
+                    <p class="small text-secondary mb-0">Clone or download repository ZIP from GitHub to your Windows machine.</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="p-3 bg-light rounded border h-100">
                     <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">2</span>
-                    <h6 class="fw-bold text-dark mb-1">Extract Archive</h6>
-                    <p class="small text-secondary mb-0">Extract the downloaded ZIP folder to any location on your Windows computer.</p>
+                    <h6 class="fw-bold text-dark mb-1">Extract Folder</h6>
+                    <p class="small text-secondary mb-0">If downloaded as ZIP, right-click and choose <strong>"Extract All..."</strong>.</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="p-3 bg-light rounded border h-100">
                     <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">3</span>
-                    <h6 class="fw-bold text-dark mb-1">Run Setup Batch</h6>
-                    <p class="small text-secondary mb-0">Double click <code>install_and_run.bat</code> to start the graphical setup installer.</p>
+                    <h6 class="fw-bold text-dark mb-1">Double-Click install_and_run.bat</h6>
+                    <p class="small text-secondary mb-0">Double-click <code>install_and_run.bat</code>. It installs dependencies, seeds demo accounts, and launches the server!</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="p-3 bg-light rounded border h-100">
                     <span class="badge bg-primary rounded-circle mb-2 fw-bold" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">4</span>
-                    <h6 class="fw-bold text-dark mb-1">Launch Application</h6>
-                    <p class="small text-secondary mb-0">The installer creates an <strong>AI Quiz Analyzer</strong> desktop shortcut with the green chalkboard logo and opens the app!</p>
+                    <h6 class="fw-bold text-dark mb-1">Ready to Use!</h6>
+                    <p class="small text-secondary mb-0">Browser opens automatically at <code>http://127.0.0.1:8000/</code> with preloaded accounts ready for testing.</p>
                 </div>
             </div>
         </div>
 
         <div class="text-center mt-4 border-top pt-4">
-            <a href="{% url 'download_setup' %}" class="btn-gc-primary px-4 py-2 font-weight-medium">
-                <i class="bi bi-download me-1"></i> Download AI Quiz Analyzer Setup Package
+            <a href="{% url 'login' %}" class="btn-gc-primary px-4 py-2 font-weight-medium">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Proceed to Login Page
             </a>
         </div>
     </div>

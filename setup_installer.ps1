@@ -54,6 +54,12 @@ $xaml = @"
 $reader = (New-Object System.Xml.XmlNodeReader ([xml]$xaml))
 $window = [System.Windows.Markup.XamlReader]::Load($reader)
 
+if (Test-Path "$PSScriptRoot\logo.ico") {
+    try {
+        $window.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create([System.Uri]"$PSScriptRoot\logo.ico")
+    } catch {}
+}
+
 $statusLabel = $window.FindName('StatusText')
 $percentLabel = $window.FindName('PercentText')
 $barFill = $window.FindName('ProgressBarFill')
@@ -308,19 +314,28 @@ $timer.Add_Tick({
             $timer.Start()
         }
         3 {
-            Update-UI 45 "Step 3/6: Installing Python dependencies..." "Upgrading pip and installing requirements.txt..."
-            
-            # Upgrade pip silently
-            & "$script:venvPython" -m pip install --upgrade pip --quiet 2>&1 | Out-Null
+            Update-UI 45 "Step 3/6: Checking Python dependencies..." "Validating requirements.txt..."
 
-            # Install project requirements
-            & "$script:venvPython" -m pip install -r "$PSScriptRoot\requirements.txt" --no-warn-script-location
-            if ($LASTEXITCODE -ne 0) {
-                Stop-InstallerWithError 50 "Package installation failed." "pip install -r requirements.txt failed with exit code $LASTEXITCODE."
-                return
+            $pkgsOk = $false
+            try {
+                $checkOut = & "$script:venvPython" -c "import django, pypdf, pptx, PIL, openai; print('OK')" 2>&1
+                if ($checkOut -match "OK") { $pkgsOk = $true }
+            } catch {}
+
+            if (-not $pkgsOk) {
+                Update-UI 48 "Step 3/6: Installing Python dependencies..." "Installing packages..."
+                # Upgrade pip silently
+                & "$script:venvPython" -m pip install --upgrade pip --quiet 2>&1 | Out-Null
+
+                # Install project requirements
+                & "$script:venvPython" -m pip install -r "$PSScriptRoot\requirements.txt" --no-warn-script-location
+                if ($LASTEXITCODE -ne 0) {
+                    Stop-InstallerWithError 50 "Package installation failed." "pip install -r requirements.txt failed with exit code $LASTEXITCODE."
+                    return
+                }
             }
 
-            Update-UI 60 "Step 3/6: Package installation complete!" "Django, PyPDF, Pillow, OpenAI installed."
+            Update-UI 60 "Step 3/6: Package dependencies verified!" "Django, PyPDF, Pillow, OpenAI ready."
             $script:stage = 4
             $timer.Interval = [TimeSpan]::FromMilliseconds(300)
             $timer.Start()
@@ -480,15 +495,31 @@ $timer.Add_Tick({
             $timer.Start()
         }
         7 {
-            Update-UI 99 "Starting application server..." "Launching Django background service on 127.0.0.1:8000..."
+            Update-UI 95 "Starting application server..." "Launching Django background service on 127.0.0.1:8000..."
 
-            # 1. Start Django server as a persistent background process using verified venv Python
-            Start-Process -FilePath $script:venvPython -ArgumentList "`"$PSScriptRoot\manage.py`" runserver 127.0.0.1:8000" -WindowStyle Hidden
+            # 1. Check if server is already running on port 8000
+            $alreadyRunning = $false
+            try {
+                $req = [System.Net.WebRequest]::Create("http://127.0.0.1:8000/")
+                $req.Timeout = 800
+                $res = $req.GetResponse()
+                if ($res) {
+                    $alreadyRunning = $true
+                    $res.Close()
+                }
+            } catch {
+                if ($_.Exception.Response) { $alreadyRunning = $true }
+            }
+
+            if (-not $alreadyRunning) {
+                # Start Django server as a persistent background process using verified venv Python
+                Start-Process -FilePath $script:venvPython -ArgumentList "`"$PSScriptRoot\manage.py`" runserver 127.0.0.1:8000" -WindowStyle Hidden
+            }
 
             # 2. Poll http://127.0.0.1:8000/ until server responds
-            Update-UI 99 "Waiting for application server readiness..." "Connecting to 127.0.0.1:8000..."
+            Update-UI 98 "Waiting for application server readiness..." "Connecting to 127.0.0.1:8000..."
             $serverReady = $false
-            for ($i = 0; $i -lt 20; $i++) {
+            for ($i = 0; $i -lt 25; $i++) {
                 try {
                     $req = [System.Net.WebRequest]::Create("http://127.0.0.1:8000/")
                     $req.Timeout = 1000
@@ -504,24 +535,19 @@ $timer.Add_Tick({
                         break
                     }
                 }
-                Start-Sleep -Milliseconds 500
+                Start-Sleep -Milliseconds 400
             }
 
-            Update-UI 100 "Server ready! Opening application..." "Launching browser..."
+            # 3. Reach 100% and show user clear success feedback
+            Update-UI 100 "Setup 100% Complete! Launching Default Browser..." "http://127.0.0.1:8000/" "#10B981"
 
-            # 3. Open Browser ONLY after server is responsive
-            $chromePath = "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe"
-            $chromePathx86 = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+            # Allow user to see and track 100% progress
+            Start-Sleep -Milliseconds 1200
 
-            if (Test-Path $chromePath) {
-                Start-Process $chromePath "http://127.0.0.1:8000/"
-            } elseif (Test-Path $chromePathx86) {
-                Start-Process $chromePathx86 "http://127.0.0.1:8000/"
-            } else {
-                Start-Process "http://127.0.0.1:8000/"
-            }
+            # 4. Navigate directly to local default launch browser
+            Start-Process "http://127.0.0.1:8000/"
 
-            # 4. Close installer GUI window
+            # 5. Smoothly close installer GUI window
             $window.Close()
         }
     }

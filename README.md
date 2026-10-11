@@ -50,18 +50,21 @@ A web application designed for educational environments. The platform enables te
 
 ---
 
-## Running the Application (1-Click Launch)
+## Running the Application (1-Click Launch on Any Machine)
 
-- **Quick Launch (Already Installed)**: Double-click **`run.bat`** (or `install_and_run.bat`). It will verify migrations, ensure demo data is loaded, open your browser to `http://127.0.0.1:8000/`, and keep the server running.
-- **First-Time Setup (New Machine)**: Double-click **`install_and_run.bat`** (or run `.\setup_installer.ps1` in PowerShell).
+The application features a **fully autonomous, self-downloading, and self-healing environment**. If Python, virtual environments, Python dependencies, the Ollama AI engine, or the local `llama3.2:1b` model are not detected on the computer, the system automatically downloads and installs them silently:
 
-This installer will automatically:
-1. Create Python virtual environment (`venv`).
-2. Install all Python dependencies from `requirements.txt`.
-3. Run database migrations & seed demo data.
-4. Auto-install Ollama (`irm https://ollama.com/install.ps1 | iex`).
-5. Pull the `llama3.2:1b` model in background (`ollama pull llama3.2:1b`).
-6. Launch the server at `http://127.0.0.1:8000/` and open your browser automatically.
+- **Quick Launch**: Double-click **`run.bat`** (or `install_and_run.bat`).
+- **First-Time Setup (Any Fresh Machine)**: Double-click **`install_and_run.bat`** (or `run.bat`).
+
+The system automatically performs all of the following irrespective of the computer:
+1. **Python Auto-Detection & Download**: Checks for Python 3.10+. If missing, downloads and installs Python 3.11 silently.
+2. **Virtual Environment & Dependencies**: Automatically builds `venv` and installs all packages from `requirements.txt`.
+3. **AI Engine Auto-Download**: If Ollama is not installed on the computer, it automatically downloads `OllamaSetup.exe` and installs it silently.
+4. **AI Daemon & Model Auto-Setup**: Auto-starts the `ollama serve` background service and pulls the `llama3.2:1b` model in the background.
+5. **Database & Demo Data**: Migrates SQLite database and seeds `teacher1` and `student1` accounts.
+6. **Instant Zero-Downtime Fallback**: If the local AI model is in the middle of downloading, the application seamlessly uses the built-in Mock AI so quiz generation and document processing never fail or hang.
+7. **Launches App**: Opens your web browser at `http://127.0.0.1:8000/`.
 
 ---
 

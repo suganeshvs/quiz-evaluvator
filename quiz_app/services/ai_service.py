@@ -1,15 +1,188 @@
 import json
+import os
 import random
 import re
-import urllib.request
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
 import urllib.parse
+import urllib.request
 from django.conf import settings
 
 class AIService:
     """
     Modular AI Service Interface supporting Local Ollama LLM API,
     OpenAI / Gemini LLM APIs, and Fallback Mock AI Mode.
+    Equipped with autonomous self-download and self-healing for AI engine & models.
     """
+    _engine_lock = threading.Lock()
+    _is_downloading_engine = False
+    _is_pulling_model = False
+    _engine_status = "uninitialized"
+
+    @classmethod
+    def ensure_ai_engine_ready(cls, async_mode=False):
+        """
+        Guarantees that the local AI engine (Ollama) and required models (llama3.2:1b)
+        are downloaded, installed, running, and ready irrespective of the computer.
+        If async_mode is True, runs in a background thread to prevent blocking.
+        """
+        if not getattr(settings, 'USE_OLLAMA', True):
+            return True
+
+        if async_mode:
+            t = threading.Thread(target=cls._perform_engine_setup, daemon=True)
+            t.start()
+            return True
+        else:
+            return cls._perform_engine_setup()
+
+    @classmethod
+    def _perform_engine_setup(cls):
+        with cls._engine_lock:
+            base_url = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434').rstrip('/')
+            preferred_model = getattr(settings, 'OLLAMA_MODEL', 'llama3.2:1b')
+
+            # 1. Check if Ollama service is already responding
+            if cls._is_ollama_running(base_url):
+                cls._engine_status = "running"
+                cls._ensure_model_downloaded(base_url, preferred_model)
+                return True
+
+            # 2. Service is not listening. Check if Ollama executable exists on this computer
+            ollama_exe = cls._find_ollama_executable()
+            if not ollama_exe:
+                # 3. Not installed on this machine: auto-download and install Ollama!
+                print("[AI ENGINE] Ollama not found on this computer. Automatically downloading & installing...")
+                ollama_exe = cls._auto_download_and_install_ollama()
+
+            if ollama_exe:
+                # 4. Start Ollama service in background
+                print(f"[AI ENGINE] Starting Ollama daemon ({ollama_exe} serve)...")
+                cls._start_ollama_service(ollama_exe)
+                # Wait up to 8 seconds for daemon to start
+                for _ in range(8):
+                    time.sleep(1)
+                    if cls._is_ollama_running(base_url):
+                        cls._engine_status = "running"
+                        break
+
+            # 5. Verify service is active and ensure model is pulled
+            if cls._is_ollama_running(base_url):
+                cls._ensure_model_downloaded(base_url, preferred_model)
+                return True
+            else:
+                cls._engine_status = "offline_fallback"
+                return False
+
+    @classmethod
+    def _is_ollama_running(cls, base_url):
+        try:
+            req = urllib.request.Request(f"{base_url}/api/tags")
+            with urllib.request.urlopen(req, timeout=2) as response:
+                return response.status == 200
+        except Exception:
+            return False
+
+    @classmethod
+    def _find_ollama_executable(cls):
+        exe = shutil.which('ollama')
+        if exe and os.path.exists(exe):
+            return exe
+
+        candidates = [
+            os.path.expandvars(r'%LOCALAPPDATA%\Programs\Ollama\ollama.exe'),
+            r'C:\Program Files\Ollama\ollama.exe',
+            os.path.expandvars(r'%PROGRAMFILES%\Ollama\ollama.exe'),
+            r'C:\ProgramData\Ollama\ollama.exe',
+            '/usr/local/bin/ollama',
+            '/usr/bin/ollama',
+        ]
+        for c in candidates:
+            if c and os.path.exists(c):
+                return c
+        return None
+
+    @classmethod
+    def _start_ollama_service(cls, ollama_exe):
+        try:
+            creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0) if os.name == 'nt' else 0
+            subprocess.Popen(
+                [ollama_exe, 'serve'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creationflags
+            )
+            return True
+        except Exception as e:
+            print(f"[AI ENGINE] Error launching Ollama service: {e}")
+            return False
+
+    @classmethod
+    def _auto_download_and_install_ollama(cls):
+        if sys.platform != 'win32':
+            return None
+        installer_path = os.path.join(tempfile.gettempdir(), 'OllamaSetup.exe')
+        url = 'https://ollama.com/download/OllamaSetup.exe'
+        try:
+            print(f"[AI ENGINE] Downloading Ollama installer from {url}...")
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=120) as resp, open(installer_path, 'wb') as f:
+                shutil.copyfileobj(resp, f)
+
+            print("[AI ENGINE] Download complete. Executing silent installation...")
+            creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0) if os.name == 'nt' else 0
+            subprocess.run([installer_path, '/silent'], capture_output=True, timeout=180, creationflags=creationflags)
+            try:
+                os.remove(installer_path)
+            except Exception:
+                pass
+
+            # Refresh PATH in current process
+            local_appdata = os.environ.get('LOCALAPPDATA', '')
+            ollama_dir = os.path.join(local_appdata, 'Programs', 'Ollama')
+            if ollama_dir not in os.environ.get('PATH', ''):
+                os.environ['PATH'] = f"{ollama_dir};{os.environ.get('PATH', '')}"
+
+            return cls._find_ollama_executable()
+        except Exception as e:
+            print(f"[AI ENGINE] Automatic Ollama installation failed: {e}")
+            return None
+
+    @classmethod
+    def _ensure_model_downloaded(cls, base_url, preferred_model='llama3.2:1b'):
+        if cls._is_pulling_model:
+            return
+
+        model = cls._resolve_ollama_model(base_url, preferred_model)
+        if model:
+            return
+
+        def pull_worker():
+            cls._is_pulling_model = True
+            print(f"[AI ENGINE] Pulling required AI model '{preferred_model}' in background...")
+            try:
+                pull_url = f"{base_url}/api/pull"
+                payload = json.dumps({"name": preferred_model, "stream": False}).encode('utf-8')
+                req = urllib.request.Request(pull_url, data=payload, headers={'Content-Type': 'application/json'})
+                with urllib.request.urlopen(req, timeout=600) as resp:
+                    print(f"[AI ENGINE] Model '{preferred_model}' download complete via API!")
+            except Exception as e:
+                try:
+                    ollama_exe = cls._find_ollama_executable() or 'ollama'
+                    creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0) if os.name == 'nt' else 0
+                    subprocess.run([ollama_exe, 'pull', preferred_model], timeout=600, creationflags=creationflags)
+                    print(f"[AI ENGINE] Model '{preferred_model}' download complete via CLI!")
+                except Exception as ex:
+                    print(f"[AI ENGINE] Model pull error: {ex}")
+            finally:
+                cls._is_pulling_model = False
+
+        t = threading.Thread(target=pull_worker, daemon=True)
+        t.start()
 
     @staticmethod
     def generate_mcqs(allowed_content_info, count=5, existing_questions=None):
@@ -20,6 +193,8 @@ class AIService:
         use_ollama = getattr(settings, 'USE_OLLAMA', True)
         if use_ollama:
             try:
+                # Trigger self-healing / auto-readiness in background
+                AIService.ensure_ai_engine_ready(async_mode=True)
                 print("Attempting MCQ generation using local Ollama LLM API...")
                 questions = AIService._generate_ollama_mcqs(allowed_content_info, count)
                 if questions:
@@ -55,7 +230,8 @@ class AIService:
         # 1. Auto-detect installed model in Ollama if preferred model isn't available
         model = AIService._resolve_ollama_model(base_url, preferred_model)
         if not model:
-            raise Exception("No AI models downloaded in Ollama yet. Please run 'ollama pull llama3.2:1b' to download a model.")
+            AIService._ensure_model_downloaded(base_url, preferred_model)
+            raise Exception("AI model is currently downloading in background. Using instant fallback.")
 
         prompt_text = allowed_content_info['full_allowed_text']
         if len(prompt_text) > 3000:

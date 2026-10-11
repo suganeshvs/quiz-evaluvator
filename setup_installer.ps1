@@ -406,6 +406,7 @@ $timer.Add_Tick({
                 }
             }
 
+            $script:ollamaExe = $ollamaExe
             if ($ollamaRunning) {
                 Update-UI 90 "Step 5/6: Ollama AI engine verified & ready!" "Ollama AI service running."
             } else {
@@ -432,10 +433,13 @@ $timer.Add_Tick({
             } catch {}
 
             if (-not $hasModel) {
-                $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
-                if ($ollamaCmd) {
+                $exeToUse = if ($script:ollamaExe) { $script:ollamaExe } else {
+                    $cmd = Get-Command ollama -ErrorAction SilentlyContinue
+                    if ($cmd) { $cmd.Source } else { $null }
+                }
+                if ($exeToUse) {
                     Update-UI 94 "Step 6/6: Starting Llama 3.2 1B model download..." "Pulling llama3.2:1b model in background..."
-                    Start-Process -FilePath $ollamaCmd.Source -ArgumentList "pull llama3.2:1b" -WindowStyle Hidden -ErrorAction SilentlyContinue
+                    Start-Process -FilePath $exeToUse -ArgumentList "pull llama3.2:1b" -WindowStyle Hidden -ErrorAction SilentlyContinue
                 }
             }
 
